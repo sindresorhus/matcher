@@ -23,22 +23,22 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
-matcher.isMatch('uni*', 'unicorn');
+matcher.isMatch('unicorn', 'uni*');
 //=> true
 
-matcher.isMatch('*corn', 'unicorn');
+matcher.isMatch('unicorn', '*corn');
 //=> true
 
-matcher.isMatch('un*rn', 'unicorn');
+matcher.isMatch('unicorn', 'un*rn');
 //=> true
 
-matcher.isMatch('!unicorn', 'rainbow');
+matcher.isMatch('rainbow', '!unicorn');
 //=> true
 
-matcher.isMatch('foo b* b*', 'foo bar baz');
+matcher.isMatch('foo bar baz', 'foo b* b*');
 //=> true
 
-matcher.isMatch('uni\\*', 'unicorn');
+matcher.isMatch('unicorn', 'uni\\*');
 //=> false
 ```
 
@@ -65,7 +65,7 @@ String to match.
 
 Type: `string`
 
-Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+Case-insensitive. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 
 
 ## Related
