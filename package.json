@@ -1,6 +1,6 @@
 {
   "name": "matcher",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Simple wildcard matching",
   "license": "MIT",
   "repository": "sindresorhus/matcher",
