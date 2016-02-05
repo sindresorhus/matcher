@@ -1,0 +1,44 @@
+{
+  "name": "matcher",
+  "version": "0.0.0",
+  "description": "Simple wildcard matching",
+  "license": "MIT",
+  "repository": "sindresorhus/matcher",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "matcher",
+    "matching",
+    "match",
+    "regex",
+    "regexp",
+    "regular",
+    "expression",
+    "wildcard",
+    "pattern",
+    "string",
+    "filter",
+    "glob",
+    "globbing",
+    "minimatch"
+  ],
+  "dependencies": {
+    "escape-string-regexp": "^1.0.4"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}
