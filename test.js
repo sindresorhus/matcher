@@ -6,6 +6,8 @@ test('matcher()', t => {
 	t.same(m(['foo', 'bar'], ['bar']), ['bar']);
 	t.same(m(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
 	t.same(m(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
+
+	t.notThrows(() => m([], []));
 });
 
 test('matcher.isMatch()', t => {

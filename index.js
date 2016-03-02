@@ -36,6 +36,10 @@ module.exports = function (inputs, patterns) {
 		throw new TypeError('Expected two arrays, got ' + typeof inputs + ' ' + typeof patterns);
 	}
 
+	if (patterns.length === 0) {
+		return inputs;
+	}
+
 	var firstNegated = patterns[0][0] === '!';
 
 	patterns = patterns.map(function (x) {
