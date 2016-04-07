@@ -2,10 +2,10 @@ import test from 'ava';
 import m from './';
 
 test('matcher()', t => {
-	t.same(m(['foo', 'bar'], ['foo']), ['foo']);
-	t.same(m(['foo', 'bar'], ['bar']), ['bar']);
-	t.same(m(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
-	t.same(m(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
+	t.deepEqual(m(['foo', 'bar'], ['foo']), ['foo']);
+	t.deepEqual(m(['foo', 'bar'], ['bar']), ['bar']);
+	t.deepEqual(m(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
+	t.deepEqual(m(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 
 	t.notThrows(() => m([], []));
 });
