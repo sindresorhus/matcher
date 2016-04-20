@@ -47,7 +47,7 @@ matcher.isMatch('unicorn', 'uni\\*');
 
 ### matcher(inputs, patterns)
 
-Accepts an array of `input`'s and `pattern`'s.
+`input` is an array of input. `patterns` is an array of patterns, or a single pattern as a string.
 
 Returns an array of of `inputs` filtered based on the `patterns`.
 
