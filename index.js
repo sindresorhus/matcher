@@ -33,7 +33,12 @@ function makeRe(pattern, shouldNegate) {
 
 module.exports = function (inputs, patterns) {
 	if (!(Array.isArray(inputs) && Array.isArray(patterns))) {
-		throw new TypeError('Expected two arrays, got ' + typeof inputs + ' ' + typeof patterns);
+		// If given pattern as a string, turn it into an array, otherwise throw
+		if (typeof patterns === 'string') {
+			patterns = [ patterns ];
+		} else {
+			throw new TypeError('Expected two arrays, got ' + typeof inputs + ' ' + typeof patterns);
+		}
 	}
 
 	if (patterns.length === 0) {
