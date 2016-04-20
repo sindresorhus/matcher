@@ -23,6 +23,9 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
+matcher(['baz', 'foo', 'bar'], 'ba*');
+//=> ['baz', 'bar']
+
 matcher.isMatch('unicorn', 'uni*');
 //=> true
 
