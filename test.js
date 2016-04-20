@@ -1,13 +1,20 @@
 import test from 'ava';
 import m from './';
 
-test('matcher()', t => {
+test('matcher() given array', t => {
 	t.deepEqual(m(['foo', 'bar'], ['foo']), ['foo']);
 	t.deepEqual(m(['foo', 'bar'], ['bar']), ['bar']);
 	t.deepEqual(m(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
 	t.deepEqual(m(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 
 	t.notThrows(() => m([], []));
+});
+
+test('matcher() given string', t => {
+	t.deepEqual(m(['foo', 'bar'], 'foo'), ['foo']);
+	t.deepEqual(m(['foo', 'bar'], 'bar'), ['bar']);
+	t.deepEqual(m(['foo', 'bar'], '!bar'), ['foo']);
+	t.deepEqual(m(['foo', 'bar', 'moo'], '!*o'), ['bar']);
 });
 
 test('matcher.isMatch()', t => {
