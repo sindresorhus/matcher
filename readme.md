@@ -75,4 +75,4 @@ Case-insensitive. Use `*` to match zero or more characters. A pattern starting w
 
 ## License
 
-MIT © [Sindre Sorhus](http://sindresorhus.com)
+MIT © [Sindre Sorhus](https://sindresorhus.com)
