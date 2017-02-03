@@ -68,6 +68,13 @@ Type: `string`
 Case-insensitive. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 
 
+## Benchmark
+
+```
+$ npm run bench
+```
+
+
 ## Related
 
 - [multimatch](https://github.com/sindresorhus/multimatch) - Extends `minimatch.match()` with support for multiple patterns
