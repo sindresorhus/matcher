@@ -32,6 +32,7 @@
     "string",
     "filter",
     "glob",
+    "globber",
     "globbing",
     "minimatch"
   ],
