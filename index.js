@@ -1,5 +1,6 @@
 'use strict';
 var escapeStringRegexp = require('escape-string-regexp');
+
 var reCache = {};
 
 function makeRe(pattern, shouldNegate) {
