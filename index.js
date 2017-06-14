@@ -10,10 +10,9 @@ function makeRe(pattern, shouldNegate) {
 		return reCache.get(cacheKey);
 	}
 
-	let negated = false;
+	let negated = pattern[0] === '!';
 
-	if (pattern[0] === '!') {
-		negated = true;
+	if (negated) {
 		pattern = pattern.slice(1);
 	}
 
