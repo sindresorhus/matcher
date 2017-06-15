@@ -10,10 +10,9 @@ function makeRe(pattern, shouldNegate) {
 		return reCache.get(cacheKey);
 	}
 
-	let negated = false;
+	const negated = pattern[0] === '!';
 
-	if (pattern[0] === '!') {
-		negated = true;
+	if (negated) {
 		pattern = pattern.slice(1);
 	}
 
@@ -49,10 +48,9 @@ module.exports = (inputs, patterns) => {
 		// If first pattern is negated we include everything to match user expectation
 		let matches = firstNegated;
 
-		// TODO: Figure out why tests fail when I use a for-of loop here
-		for (let j = 0; j < patterns.length; j++) {
-			if (patterns[j].test(input)) {
-				matches = !patterns[j].negated;
+		for (const pattern of patterns) {
+			if (pattern.test(input)) {
+				matches = !pattern.negated;
 			}
 		}
 
