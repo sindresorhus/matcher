@@ -11,6 +11,15 @@ Useful when you want to accept loose string input and regexes/globs are too conv
 $ npm install --save matcher
 ```
 
+## import
+
+```js
+const matcher = require('matcher');
+```
+
+```js
+import * as matcher from "matcher"
+```
 
 ## Usage
 
@@ -74,6 +83,9 @@ Case-insensitive. Use `*` to match zero or more characters. A pattern starting w
 $ npm run bench
 ```
 
+## Typescript
+
+Includes [TypeScript](http://typescriptlang.org) definitions inside this project
 
 ## Related
 
