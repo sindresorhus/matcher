@@ -11,7 +11,7 @@ Useful when you want to accept loose string input and regexes/globs are too conv
 $ npm install --save matcher
 ```
 
-## import
+## Import
 
 ```js
 const matcher = require('matcher');
