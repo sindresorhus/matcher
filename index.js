@@ -3,7 +3,16 @@ const escapeStringRegexp = require('escape-string-regexp');
 
 const reCache = new Map();
 
-function makeRe(pattern, shouldNegate) {
+global.options = {
+	caseSensitive: false
+};
+
+function makeRe(pattern, shouldNegate, options) {
+	if (options !== undefined) {
+		if (options.caseSensitive) {
+			global.options.caseSensitive = true;
+		}
+	}
 	const cacheKey = pattern + shouldNegate;
 
 	if (reCache.has(cacheKey)) {
@@ -22,14 +31,14 @@ function makeRe(pattern, shouldNegate) {
 		pattern = `(?!${pattern})`;
 	}
 
-	const re = new RegExp(`^${pattern}$`, 'i');
+	const re = new RegExp(`^${pattern}$`, global.options.caseSensitive ? '' : 'i');
 	re.negated = negated;
 	reCache.set(cacheKey, re);
 
 	return re;
 }
 
-module.exports = (inputs, patterns) => {
+module.exports = (inputs, patterns, options) => {
 	if (!(Array.isArray(inputs) && Array.isArray(patterns))) {
 		throw new TypeError(`Expected two arrays, got ${typeof inputs} ${typeof patterns}`);
 	}
@@ -40,7 +49,7 @@ module.exports = (inputs, patterns) => {
 
 	const firstNegated = patterns[0][0] === '!';
 
-	patterns = patterns.map(x => makeRe(x, false));
+	patterns = patterns.map(x => makeRe(x, false, options));
 
 	const ret = [];
 
@@ -62,4 +71,4 @@ module.exports = (inputs, patterns) => {
 	return ret;
 };
 
-module.exports.isMatch = (input, pattern) => makeRe(pattern, true).test(input);
+module.exports.isMatch = (input, pattern, options) => makeRe(pattern, true, options).test(input);
