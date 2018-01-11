@@ -3,17 +3,12 @@ const escapeStringRegexp = require('escape-string-regexp');
 
 const reCache = new Map();
 
-global.options = {
-	caseSensitive: false
-};
-
 function makeRe(pattern, shouldNegate, options) {
-	if (options !== undefined) {
-		if (options.caseSensitive) {
-			global.options.caseSensitive = true;
-		}
-	}
-	const cacheKey = pattern + shouldNegate;
+	const opts = Object.assign({
+		caseSensitive: false
+	}, options);
+
+	const cacheKey = pattern + shouldNegate + JSON.stringify(opts);
 
 	if (reCache.has(cacheKey)) {
 		return reCache.get(cacheKey);
@@ -31,7 +26,7 @@ function makeRe(pattern, shouldNegate, options) {
 		pattern = `(?!${pattern})`;
 	}
 
-	const re = new RegExp(`^${pattern}$`, global.options.caseSensitive ? '' : 'i');
+	const re = new RegExp(`^${pattern}$`, opts.caseSensitive ? '' : 'i');
 	re.negated = negated;
 	reCache.set(cacheKey, re);
 
