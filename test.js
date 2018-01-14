@@ -7,6 +7,7 @@ test('matcher()', t => {
 	t.deepEqual(m(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
 	t.deepEqual(m(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 	t.deepEqual(m(['moo', 'MOO'], ['*oo'], {caseSensitive: true}), ['moo']);
+	t.deepEqual(m(['moo', 'MOO'], ['*oo'], {caseSensitive: false}), ['moo', 'MOO']);
 	t.notThrows(() => m([], []));
 });
 
@@ -14,6 +15,7 @@ test('matcher.isMatch()', t => {
 	t.true(m.isMatch('unicorn', 'unicorn'));
 	t.true(m.isMatch('MOO', 'MOO'));
 	t.true(m.isMatch('unicorn', 'uni*'));
+	t.true(m.isMatch('UNICORN', 'unicorn', {caseSensitive: false}));
 	t.true(m.isMatch('unicorn', '*corn'));
 	t.true(m.isMatch('unicorn', 'un*rn'));
 	t.true(m.isMatch('foo unicorn bar', '*unicorn*'));
