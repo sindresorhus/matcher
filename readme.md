@@ -49,7 +49,7 @@ matcher.isMatch('unicorn', 'uni\\*');
 
 Accepts an array of `input`'s and `pattern`'s.
 
-Returns an array of of `inputs` filtered based on the `patterns`.
+Returns an array of `inputs` filtered based on the `patterns`.
 
 ### matcher.isMatch(input, pattern)
 
