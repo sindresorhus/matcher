@@ -40,6 +40,12 @@ matcher.isMatch('foo bar baz', 'foo b* b*');
 
 matcher.isMatch('unicorn', 'uni\\*');
 //=> false
+
+matcher.isMatch('UNICORN', 'UNI*', {caseSensitive: true});
+//=> true
+
+matcher.isMatch('UNICORN', 'unicorn', {caseSensitive: true});
+//=> false
 ```
 
 
@@ -61,11 +67,20 @@ Type: `string`
 
 String to match.
 
+#### options
+
+##### caseSensitive
+
+Type: `boolean`<br>
+Default: `false`
+
+Treat upper case and lower case characters as distinct.
+
 #### pattern
 
 Type: `string`
 
-Case-insensitive. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 
 
 ## Benchmark
