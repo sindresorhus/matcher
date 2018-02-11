@@ -51,13 +51,13 @@ matcher.isMatch('UNICORN', 'unicorn', {caseSensitive: true});
 
 ## API
 
-### matcher(inputs, patterns)
+### matcher(inputs, patterns, [options])
 
 Accepts an array of `input`'s and `pattern`'s.
 
 Returns an array of of `inputs` filtered based on the `patterns`.
 
-### matcher.isMatch(input, pattern)
+### matcher.isMatch(input, pattern, [options])
 
 Returns a boolean of whether the `input` matches the `pattern`.
 
@@ -69,12 +69,14 @@ String to match.
 
 #### options
 
+Type: `Object`
+
 ##### caseSensitive
 
 Type: `boolean`<br>
 Default: `false`
 
-Treat upper case and lower case characters as distinct.
+Treat uppercase and lowercase characters as being the same.
 
 #### pattern
 
