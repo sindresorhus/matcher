@@ -8,7 +8,7 @@ Useful when you want to accept loose string input and regexes/globs are too conv
 ## Install
 
 ```
-$ npm install --save matcher
+$ npm install matcher
 ```
 
 
