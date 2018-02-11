@@ -40,18 +40,24 @@ matcher.isMatch('foo bar baz', 'foo b* b*');
 
 matcher.isMatch('unicorn', 'uni\\*');
 //=> false
+
+matcher.isMatch('UNICORN', 'UNI*', {caseSensitive: true});
+//=> true
+
+matcher.isMatch('UNICORN', 'unicorn', {caseSensitive: true});
+//=> false
 ```
 
 
 ## API
 
-### matcher(inputs, patterns)
+### matcher(inputs, patterns, [options])
 
 Accepts an array of `input`'s and `pattern`'s.
 
 Returns an array of `inputs` filtered based on the `patterns`.
 
-### matcher.isMatch(input, pattern)
+### matcher.isMatch(input, pattern, [options])
 
 Returns a boolean of whether the `input` matches the `pattern`.
 
@@ -61,11 +67,24 @@ Type: `string`
 
 String to match.
 
+#### options
+
+Type: `Object`
+
+##### caseSensitive
+
+Type: `boolean`<br>
+Default: `false`
+
+Treat uppercase and lowercase characters as being the same.
+
+Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
+
 #### pattern
 
 Type: `string`
 
-Case-insensitive. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 
 
 ## Benchmark
