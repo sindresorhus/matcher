@@ -3,12 +3,12 @@ const escapeStringRegexp = require('escape-string-regexp');
 
 const reCache = new Map();
 
-function makeRe(pattern, shouldNegate, options) {
+function makeRe(pattern, options) {
 	const opts = Object.assign({
 		caseSensitive: false
 	}, options);
 
-	const cacheKey = pattern + shouldNegate + JSON.stringify(opts);
+	const cacheKey = pattern + JSON.stringify(opts);
 
 	if (reCache.has(cacheKey)) {
 		return reCache.get(cacheKey);
@@ -21,10 +21,6 @@ function makeRe(pattern, shouldNegate, options) {
 	}
 
 	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*');
-
-	if (negated && shouldNegate) {
-		pattern = `(?!${pattern})`;
-	}
 
 	const re = new RegExp(`^${pattern}$`, opts.caseSensitive ? '' : 'i');
 	re.negated = negated;
@@ -44,7 +40,7 @@ module.exports = (inputs, patterns, options) => {
 
 	const firstNegated = patterns[0][0] === '!';
 
-	patterns = patterns.map(x => makeRe(x, false, options));
+	patterns = patterns.map(x => makeRe(x, options));
 
 	const ret = [];
 
@@ -66,4 +62,8 @@ module.exports = (inputs, patterns, options) => {
 	return ret;
 };
 
-module.exports.isMatch = (input, pattern, options) => makeRe(pattern, true, options).test(input);
+module.exports.isMatch = (input, pattern, options) => {
+	const re = makeRe(pattern, options);
+	const matches = re.test(input);
+	return re.negated ? !matches : matches;
+};
