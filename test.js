@@ -26,4 +26,6 @@ test('matcher.isMatch()', t => {
 	t.false(m.isMatch('unicorn', '!unicorn'));
 	t.false(m.isMatch('unicorn', '!uni*'));
 	t.false(m.isMatch('unicorn', 'uni\\*'));
+	t.true(m.isMatch('unicorn', '!tricorn'));
+	t.true(m.isMatch('unicorn', '!tri*'));
 });
