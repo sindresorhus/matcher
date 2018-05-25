@@ -4,11 +4,11 @@ const escapeStringRegexp = require('escape-string-regexp');
 const reCache = new Map();
 
 function makeRe(pattern, options) {
-	const opts = Object.assign({
+	options = Object.assign({
 		caseSensitive: false
 	}, options);
 
-	const cacheKey = pattern + JSON.stringify(opts);
+	const cacheKey = pattern + JSON.stringify(options);
 
 	if (reCache.has(cacheKey)) {
 		return reCache.get(cacheKey);
@@ -22,7 +22,7 @@ function makeRe(pattern, options) {
 
 	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*');
 
-	const re = new RegExp(`^${pattern}$`, opts.caseSensitive ? '' : 'i');
+	const re = new RegExp(`^${pattern}$`, options.caseSensitive ? '' : 'i');
 	re.negated = negated;
 	reCache.set(cacheKey, re);
 
