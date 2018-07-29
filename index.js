@@ -29,7 +29,7 @@ function makeRe(pattern, options) {
 	return re;
 }
 
-module.exports = (inputs, patterns, options) => {
+const matcher = (inputs, patterns, options) => {
 	if (!(Array.isArray(inputs) && Array.isArray(patterns))) {
 		throw new TypeError(`Expected two arrays, got ${typeof inputs} ${typeof patterns}`);
 	}
@@ -62,8 +62,10 @@ module.exports = (inputs, patterns, options) => {
 	return ret;
 };
 
-module.exports.isMatch = (input, pattern, options) => {
-	const re = makeRe(pattern, options);
-	const matches = re.test(input);
-	return re.negated ? !matches : matches;
+
+module.exports = matcher;
+
+module.exports.isMatch = (input, patterns, options) => {
+	const matches = matcher(input, patterns, options);
+	return matches.length > 0;
 };
