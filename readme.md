@@ -96,6 +96,7 @@ $ npm run bench
 
 ## Related
 
+- [matcher-cli](https://github.com/sindresorhus/matcher-cli) - CLI for this module
 - [multimatch](https://github.com/sindresorhus/multimatch) - Extends `minimatch.match()` with support for multiple patterns
 
 
