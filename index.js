@@ -65,6 +65,6 @@ const matcher = (inputs, patterns, options) => {
 module.exports = matcher;
 
 module.exports.isMatch = (input, patterns, options) => {
-	const matches = matcher(input, [].concat(patterns), options);
+	const matches = matcher([].concat(input), [].concat(patterns), options);
 	return matches.length > 0;
 };
