@@ -62,7 +62,6 @@ const matcher = (inputs, patterns, options) => {
 	return ret;
 };
 
-
 module.exports = matcher;
 
 module.exports.isMatch = (input, patterns, options) => {
