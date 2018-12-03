@@ -22,16 +22,16 @@ function makeRe(pattern, options) {
 
 	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*');
 
-	const re = new RegExp(`^${pattern}$`, options.caseSensitive ? '' : 'i');
+	const re = new RegExp('^' + pattern + '$', options.caseSensitive ? '' : 'i');
 	re.negated = negated;
 	reCache.set(cacheKey, re);
 
 	return re;
 }
 
-module.exports = (inputs, patterns, options) => {
+module.exports = function (inputs, patterns, options) {
 	if (!(Array.isArray(inputs) && Array.isArray(patterns))) {
-		throw new TypeError(`Expected two arrays, got ${typeof inputs} ${typeof patterns}`);
+		throw new TypeError('Expected two arrays, got ' + typeof inputs + ' ' + typeof patterns);
 	}
 
 	if (patterns.length === 0) {
@@ -40,7 +40,11 @@ module.exports = (inputs, patterns, options) => {
 
 	const firstNegated = patterns[0][0] === '!';
 
-	patterns = patterns.map(x => makeRe(x, options));
+	function patternToRe(pattern) {
+		return makeRe(pattern, options);
+	}
+
+	patterns = patterns.map(patternToRe);
 
 	const ret = [];
 
@@ -62,7 +66,7 @@ module.exports = (inputs, patterns, options) => {
 	return ret;
 };
 
-module.exports.isMatch = (input, pattern, options) => {
+module.exports.isMatch = function (input, pattern, options) {
 	const re = makeRe(pattern, options);
 	const matches = re.test(input);
 	return re.negated ? !matches : matches;
