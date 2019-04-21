@@ -1,17 +1,17 @@
 'use strict';
 const escapeStringRegexp = require('escape-string-regexp');
 
-const reCache = new Map();
+const regexpCache = new Map();
 
-function makeRe(pattern, options) {
+function makeRegexp(pattern, options) {
 	options = Object.assign({
 		caseSensitive: false
 	}, options);
 
 	const cacheKey = pattern + JSON.stringify(options);
 
-	if (reCache.has(cacheKey)) {
-		return reCache.get(cacheKey);
+	if (regexpCache.has(cacheKey)) {
+		return regexpCache.get(cacheKey);
 	}
 
 	const negated = pattern[0] === '!';
@@ -22,11 +22,11 @@ function makeRe(pattern, options) {
 
 	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*');
 
-	const re = new RegExp(`^${pattern}$`, options.caseSensitive ? '' : 'i');
-	re.negated = negated;
-	reCache.set(cacheKey, re);
+	const regexp = new RegExp(`^${pattern}$`, options.caseSensitive ? '' : 'i');
+	regexp.negated = negated;
+	regexpCache.set(cacheKey, regexp);
 
-	return re;
+	return regexp;
 }
 
 module.exports = (inputs, patterns, options) => {
@@ -40,9 +40,9 @@ module.exports = (inputs, patterns, options) => {
 
 	const firstNegated = patterns[0][0] === '!';
 
-	patterns = patterns.map(x => makeRe(x, options));
+	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
-	const ret = [];
+	const result = [];
 
 	for (const input of inputs) {
 		// If first pattern is negated we include everything to match user expectation
@@ -55,15 +55,15 @@ module.exports = (inputs, patterns, options) => {
 		}
 
 		if (matches) {
-			ret.push(input);
+			result.push(input);
 		}
 	}
 
-	return ret;
+	return result;
 };
 
 module.exports.isMatch = (input, pattern, options) => {
-	const re = makeRe(pattern, options);
-	const matches = re.test(input);
-	return re.negated ? !matches : matches;
+	const regexp = makeRegexp(pattern, options);
+	const matches = regexp.test(input);
+	return regexp.negated ? !matches : matches;
 };
