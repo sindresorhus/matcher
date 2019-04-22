@@ -69,7 +69,7 @@ String to match.
 
 #### options
 
-Type: `Object`
+Type: `object`
 
 ##### caseSensitive
 
