@@ -17,7 +17,7 @@ declare const matcher: {
 
 	@param inputs - Strings to match.
 	@param patterns - Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
-	@returns `inputs` filtered based on the `patterns`.
+	@returns The `inputs` filtered based on the `patterns`.
 
 	@example
 	```

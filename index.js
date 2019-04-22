@@ -4,9 +4,10 @@ const escapeStringRegexp = require('escape-string-regexp');
 const regexpCache = new Map();
 
 function makeRegexp(pattern, options) {
-	options = Object.assign({
-		caseSensitive: false
-	}, options);
+	options = {
+		caseSensitive: false,
+		...options
+	};
 
 	const cacheKey = pattern + JSON.stringify(options);
 

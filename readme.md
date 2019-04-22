@@ -59,7 +59,7 @@ Returns an array of `inputs` filtered based on the `patterns`.
 
 ### matcher.isMatch(input, pattern, [options])
 
-Returns a boolean of whether the `input` matches the `pattern`.
+Returns a `boolean` of whether the `input` matches the `pattern`.
 
 #### input
 

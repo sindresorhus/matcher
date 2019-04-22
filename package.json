@@ -10,7 +10,7 @@
 		"url": "sindresorhus.com"
 	},
 	"engines": {
-		"node": ">=6"
+		"node": ">=8"
 	},
 	"scripts": {
 		"test": "xo && ava && tsd",
@@ -38,7 +38,7 @@
 		"minimatch"
 	],
 	"dependencies": {
-		"escape-string-regexp": "^1.0.4"
+		"escape-string-regexp": "^2.0.0"
 	},
 	"devDependencies": {
 		"ava": "^1.4.1",
