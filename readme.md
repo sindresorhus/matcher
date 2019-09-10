@@ -51,13 +51,13 @@ matcher.isMatch('UNICORN', 'unicorn', {caseSensitive: true});
 
 ## API
 
-### matcher(inputs, patterns, [options])
+### matcher(inputs, patterns, options?)
 
 Accepts an array of `input`'s and `pattern`'s.
 
 Returns an array of `inputs` filtered based on the `patterns`.
 
-### matcher.isMatch(input, pattern, [options])
+### matcher.isMatch(input, pattern, options?)
 
 Returns a `boolean` of whether the `input` matches the `pattern`.
 
@@ -100,6 +100,14 @@ $ npm run bench
 - [multimatch](https://github.com/sindresorhus/multimatch) - Extends `minimatch.match()` with support for multiple patterns
 
 
-## License
+---
 
-MIT © [Sindre Sorhus](https://sindresorhus.com)
+<div align="center">
+	<b>
+		<a href="https://tidelift.com/subscription/pkg/npm-matcher?utm_source=npm-matcher&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
+	</b>
+	<br>
+	<sub>
+		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
+	</sub>
+</div>
