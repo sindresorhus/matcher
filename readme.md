@@ -46,6 +46,15 @@ matcher.isMatch('UNICORN', 'UNI*', {caseSensitive: true});
 
 matcher.isMatch('UNICORN', 'unicorn', {caseSensitive: true});
 //=> false
+
+matcher.isMatch(['foo', 'bar'], 'f*');
+//=> true
+
+matcher.isMatch(['foo', 'bar'], ['a*', 'b*']);
+//=> true
+
+matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
+//=> false
 ```
 
 
@@ -59,13 +68,15 @@ Returns an array of `inputs` filtered based on the `patterns`.
 
 ### matcher.isMatch(input, pattern, options?)
 
-Returns a `boolean` of whether the `input` matches the `pattern`.
+Accepts either a string or array of strings for both `input` and `pattern`.
+
+Returns a `boolean` of whether any given `input` matches every given `pattern`.
 
 #### input
 
-Type: `string`
+Type: `string | string[]`
 
-String to match.
+String or array of strings to match.
 
 #### options
 
@@ -82,7 +93,7 @@ Ensure you use this correctly. For example, files and directories should be matc
 
 #### pattern
 
-Type: `string`
+Type: `string | string[]`
 
 Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 

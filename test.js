@@ -28,4 +28,14 @@ test('matcher.isMatch()', t => {
 	t.false(matcher.isMatch('unicorn', 'uni\\*'));
 	t.true(matcher.isMatch('unicorn', '!tricorn'));
 	t.true(matcher.isMatch('unicorn', '!tri*'));
+
+	t.true(matcher.isMatch(['foo', 'bar', 'moo'], '*oo'));
+	t.true(matcher.isMatch(['foo', 'bar', 'moo'], ['*oo', '!f*']));
+	t.true(matcher.isMatch('moo', ['*oo', '!f*']));
+	t.true(matcher.isMatch('UNICORN', ['!*oo', 'UNI*'], {caseSensitive: true}));
+
+	t.false(matcher.isMatch(['unicorn', 'bar', 'wizard'], '*oo'));
+	t.false(matcher.isMatch(['foo', 'bar', 'unicorn'], ['*horn', '!b*']));
+	t.false(matcher.isMatch('moo', ['*oo', '!m*']));
+	t.false(matcher.isMatch('UNICORN', ['!*oo', 'uni*'], {caseSensitive: true}));
 });
