@@ -74,7 +74,7 @@ Returns a `boolean` of whether any given `input` matches every given `pattern`.
 
 #### input
 
-Type: `string` or `string[]`
+Type: `string | string[]`
 
 String or array of strings to match.
 
@@ -93,7 +93,7 @@ Ensure you use this correctly. For example, files and directories should be matc
 
 #### pattern
 
-Type: `string` or `string[]`
+Type: `string | string[]`
 
 Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 
