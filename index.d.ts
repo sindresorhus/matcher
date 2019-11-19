@@ -33,9 +33,9 @@ declare const matcher: {
 	(inputs: readonly string[], patterns: readonly string[], options?: matcher.Options): string[];
 
 	/**
-	@param input - String to match.
-	@param pattern - Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
-	@returns Whether the `input` matches the `pattern`.
+	@param input - String or array of strings to match.
+	@param pattern - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+	@returns Whether any given `input` matches every given `pattern`.
 
 	@example
 	```
