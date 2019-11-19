@@ -4,13 +4,11 @@
 
 Useful when you want to accept loose string input and regexes/globs are too convoluted.
 
-
 ## Install
 
 ```
 $ npm install matcher
 ```
-
 
 ## Usage
 
@@ -57,7 +55,6 @@ matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
 //=> false
 ```
 
-
 ## API
 
 ### matcher(inputs, patterns, options?)
@@ -84,7 +81,7 @@ Type: `object`
 
 ##### caseSensitive
 
-Type: `boolean`<br>
+Type: `boolean`\
 Default: `false`
 
 Treat uppercase and lowercase characters as being the same.
@@ -97,19 +94,16 @@ Type: `string | string[]`
 
 Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 
-
 ## Benchmark
 
 ```
 $ npm run bench
 ```
 
-
 ## Related
 
 - [matcher-cli](https://github.com/sindresorhus/matcher-cli) - CLI for this module
 - [multimatch](https://github.com/sindresorhus/multimatch) - Extends `minimatch.match()` with support for multiple patterns
-
 
 ---
 
