@@ -21,7 +21,7 @@ function makeRegexp(pattern, options) {
 		pattern = pattern.slice(1);
 	}
 
-	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*');
+	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '[\\s\\S]*');
 
 	const regexp = new RegExp(`^${pattern}$`, options.caseSensitive ? '' : 'i');
 	regexp.negated = negated;

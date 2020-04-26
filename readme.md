@@ -57,6 +57,8 @@ matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
 
 ## API
 
+It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
+
 ### matcher(inputs, patterns, options?)
 
 Accepts an array of `input`'s and `pattern`'s.

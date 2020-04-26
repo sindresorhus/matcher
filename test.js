@@ -39,3 +39,10 @@ test('matcher.isMatch()', t => {
 	t.false(matcher.isMatch('moo', ['*oo', '!m*']));
 	t.false(matcher.isMatch('UNICORN', ['!*oo', 'uni*'], {caseSensitive: true}));
 });
+
+test('matches across newlines', t => {
+	t.deepEqual(matcher(['foo\nbar'], ['foo*']), ['foo\nbar']);
+	t.deepEqual(matcher(['foo\nbar'], ['foo*r']), ['foo\nbar']);
+	t.true(matcher.isMatch(['foo\nbar'], ['foo*']));
+	t.true(matcher.isMatch(['foo\nbar'], ['foo*r']));
+});
