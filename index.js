@@ -39,15 +39,15 @@ module.exports = (inputs, patterns, options) => {
 		return inputs;
 	}
 
-	const firstNegated = patterns[0][0] === '!';
+	const isFirstPatternNegated = patterns[0][0] === '!';
 
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
 
 	for (const input of inputs) {
-		// If first pattern is negated we include everything to match user expectation
-		let matches = firstNegated;
+		// If first pattern is negated we include everything to match user expectation.
+		let matches = isFirstPatternNegated;
 
 		for (const pattern of patterns) {
 			if (pattern.test(input)) {

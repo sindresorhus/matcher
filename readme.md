@@ -1,4 +1,4 @@
-# matcher [![Build Status](https://travis-ci.org/sindresorhus/matcher.svg?branch=master)](https://travis-ci.org/sindresorhus/matcher)
+# matcher [![Build Status](https://travis-ci.com/sindresorhus/matcher.svg?branch=master)](https://travis-ci.com/sindresorhus/matcher)
 
 > Simple [wildcard](https://en.wikipedia.org/wiki/Wildcard_character) matching
 

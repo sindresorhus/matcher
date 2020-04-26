@@ -79,7 +79,7 @@ declare const matcher: {
 	//=> false
 	```
 	*/
-	isMatch(input: string | readonly string[], pattern: string | readonly string[], options?: matcher.Options): boolean;
+	isMatch: (input: string | readonly string[], pattern: string | readonly string[], options?: matcher.Options) => boolean;
 };
 
 export = matcher;
