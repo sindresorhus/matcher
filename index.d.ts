@@ -1,9 +1,9 @@
 declare namespace matcher {
 	interface Options {
 		/**
-		Requires every pattern for matcher() to have at least one positive match.
+		Requires every matcher() pattern to have at least one positive match.
 
-		This option has no effect on isMatch() behavior.
+		This option has no effect on isMatch().
 
 		@default false
 		*/
