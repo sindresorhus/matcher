@@ -40,18 +40,22 @@ module.exports = (inputs, patterns, options) => {
 	}
 
 	const isFirstPatternNegated = patterns[0][0] === '!';
+	const {every} = options || {};
 
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
+	const happies = patterns.map(rx => every ? (rx.negated ? 1 : 0) : 1);
 
 	for (const input of inputs) {
 		// If first pattern is negated we include everything to match user expectation.
 		let matches = isFirstPatternNegated;
 
-		for (const pattern of patterns) {
-			if (pattern.test(input)) {
-				matches = !pattern.negated;
+		for (let i = 0, pattern; i < patterns.length; ++i) {
+			if ((pattern = patterns[i]).test(input)) {
+				if ((matches = !pattern.negated)) {
+					happies[i] += 1;
+				}
 			}
 		}
 
@@ -60,7 +64,7 @@ module.exports = (inputs, patterns, options) => {
 		}
 	}
 
-	return result;
+	return happies.every(Boolean) ? result : [];
 };
 
 module.exports.isMatch = (input, pattern, options) => {

@@ -1,6 +1,14 @@
 declare namespace matcher {
 	interface Options {
 		/**
+		Requires every pattern for matcher() to have at least one positive match.
+
+		This option has no effect on isMatch() behavior.
+
+		@default false
+		*/
+		readonly every?: boolean;
+		/**
 		Treat uppercase and lowercase characters as being the same.
 
 		Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
