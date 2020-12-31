@@ -47,14 +47,14 @@ test('matches across newlines', t => {
 	t.true(matcher.isMatch(['foo\nbar'], ['foo*r']));
 });
 
-test('matcher honors the \'every\' option', t => {
-	t.deepEqual(matcher(['a1', 'b', 'a2', 'c'], ['a*', 'c'], {every: true}), ['a1', 'a2', 'c']);
-	t.deepEqual(matcher(['a1', 'b', 'a2', 'c'], ['a*', 'c1'], {every: true}), []);
+test('matcher honors the \'allPatterns\' option', t => {
+	t.deepEqual(matcher(['a1', 'b', 'a2', 'c'], ['a*', 'c'], {allPatterns: true}), ['a1', 'a2', 'c']);
+	t.deepEqual(matcher(['a1', 'b', 'a2', 'c'], ['a*', 'c1'], {allPatterns: true}), []);
 });
 
-test('matcher.isEqual ignores the \'every\' option', t => {
-	t.true(matcher.isMatch(['a1', 'c'], ['c'], {every: true}));
-	t.false(matcher.isMatch(['a1', 'c'], ['c1'], {every: true}));
+test('matcher.isEqual ignores the \'allPatterns\' option', t => {
+	t.true(matcher.isMatch(['a1', 'c'], ['c'], {allPatterns: true}));
+	t.false(matcher.isMatch(['a1', 'c'], ['c1'], {allPatterns: true}));
 	t.true(matcher.isMatch(['a1', 'c'], ['c']));
 	t.false(matcher.isMatch(['a1', 'c'], ['c1']));
 });

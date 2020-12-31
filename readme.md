@@ -21,10 +21,10 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
-matcher(['a', 'b', 'c'], ['a*', 'c'], {every: true});
+matcher(['a', 'b', 'c'], ['a*', 'c'], {allPatterns: true});
 //=> ['a', 'c']
 
-matcher(['a', 'b', 'c'], ['a*', 'cc'], {every: true});
+matcher(['a', 'b', 'c'], ['a*', 'cc'], {allPatterns: true});
 //=> []
 
 matcher.isMatch('unicorn', 'uni*');
@@ -96,7 +96,7 @@ Treat uppercase and lowercase characters as being the same.
 
 Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
-##### every
+##### allPatterns
 
 Type: `boolean`\
 Default: `false`

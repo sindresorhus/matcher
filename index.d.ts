@@ -7,7 +7,7 @@ declare namespace matcher {
 
 		@default false
 		*/
-		readonly every?: boolean;
+		readonly allPatterns?: boolean;
 		/**
 		Treat uppercase and lowercase characters as being the same.
 

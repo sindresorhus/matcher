@@ -40,12 +40,12 @@ const matcher = (inputs, patterns, options) => {
 	}
 
 	const isFirstPatternNegated = patterns[0][0] === '!';
-	const {every} = options || {};
+	const {allPatterns} = options || {};
 
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
-	const matched = patterns.map(rx => every ? (rx.negated ? 1 : 0) : 1);
+	const matched = patterns.map(rx => allPatterns ? (rx.negated ? 1 : 0) : 1);
 
 	for (const input of inputs) {
 		// If first pattern is negated we include everything to match user expectation.
@@ -72,7 +72,7 @@ matcher.isMatch = (input, pattern, options = {}) => {
 	const patternArray = Array.isArray(pattern) ? pattern : [pattern];
 
 	return inputArray.some(item => {
-		return matcher([item], patternArray, {...options, every: true}).length !== 0;
+		return matcher([item], patternArray, {...options, allPatterns: true}).length !== 0;
 	});
 };
 
