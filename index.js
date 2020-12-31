@@ -30,7 +30,7 @@ function makeRegexp(pattern, options) {
 	return regexp;
 }
 
-module.exports = (inputs, patterns, options) => {
+const matcher = (inputs, patterns, options) => {
 	if (!(Array.isArray(inputs) && Array.isArray(patterns))) {
 		throw new TypeError(`Expected two arrays, got ${typeof inputs} ${typeof patterns}`);
 	}
@@ -45,7 +45,7 @@ module.exports = (inputs, patterns, options) => {
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
-	const happies = patterns.map(rx => every ? (rx.negated ? 1 : 0) : 1);
+	const matched = patterns.map(rx => every ? (rx.negated ? 1 : 0) : 1);
 
 	for (const input of inputs) {
 		// If first pattern is negated we include everything to match user expectation.
@@ -54,7 +54,7 @@ module.exports = (inputs, patterns, options) => {
 		for (let i = 0, pattern; i < patterns.length; ++i) {
 			if ((pattern = patterns[i]).test(input)) {
 				if ((matches = !pattern.negated)) {
-					happies[i] += 1;
+					matched[i] += 1;
 				}
 			}
 		}
@@ -64,18 +64,16 @@ module.exports = (inputs, patterns, options) => {
 		}
 	}
 
-	return happies.every(Boolean) ? result : [];
+	return matched.every(Boolean) ? result : [];
 };
 
-module.exports.isMatch = (input, pattern, options) => {
+matcher.isMatch = (input, pattern, options = {}) => {
 	const inputArray = Array.isArray(input) ? input : [input];
 	const patternArray = Array.isArray(pattern) ? pattern : [pattern];
 
-	return inputArray.some(input => {
-		return patternArray.every(pattern => {
-			const regexp = makeRegexp(pattern, options);
-			const matches = regexp.test(input);
-			return regexp.negated ? !matches : matches;
-		});
+	return inputArray.some(item => {
+		return matcher([item], patternArray, {...options, every: true}).length !== 0;
 	});
 };
+
+module.exports = matcher;
