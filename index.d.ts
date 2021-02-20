@@ -17,8 +17,8 @@ declare const matcher: {
 
 	It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
-	@param inputs - Strings to match.
-	@param patterns - Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+	@param inputs - String or array of strings to match.
+	@param patterns - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 	@returns The `inputs` filtered based on the `patterns`.
 
 	@example
@@ -30,15 +30,24 @@ declare const matcher: {
 
 	matcher(['foo', 'bar', 'moo'], ['!*oo']);
 	//=> ['bar']
+
+	matcher('moo', ['']);
+	//=> []
+
+	matcher('moo', []);
+	//=> []
+
+	matcher([''], ['']);
+	//=> ['']
 	```
 	*/
-	(inputs: readonly string[], patterns: readonly string[], options?: matcher.Options): string[];
+	(inputs: string | readonly string[], patterns: string | readonly string[], options?: matcher.Options): string[];
 
 	/**
 	It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
-	@param input - String or array of strings to match.
-	@param pattern - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+	@param inputs - String or array of strings to match.
+	@param patterns - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
 	@returns Whether any given `input` matches every given `pattern`.
 
 	@example
@@ -77,9 +86,24 @@ declare const matcher: {
 
 	matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
 	//=> false
+
+	matcher.isMatch('unicorn', ['']);
+	//=> false
+
+	matcher.isMatch('unicorn', []);
+	//=> false
+
+	matcher.isMatch([], 'bar');
+	//=> false
+
+	matcher.isMatch([], []);
+	//=> false
+
+	matcher.isMatch([''], ['']);
+	//=> true
 	```
 	*/
-	isMatch: (input: string | readonly string[], pattern: string | readonly string[], options?: matcher.Options) => boolean;
+	isMatch: (inputs: string | readonly string[], patterns: string | readonly string[], options?: matcher.Options) => boolean;
 };
 
 export = matcher;

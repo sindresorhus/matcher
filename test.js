@@ -47,22 +47,21 @@ test('matches across newlines', t => {
 	t.true(matcher.isMatch(['foo\nbar'], ['foo*r']));
 });
 
-test('handles empty arguments inconsistently', t => {
+test('handles empty arguments consistently', t => {
 	t.deepEqual(matcher(['phoenix'], ['bar', '']), []);
 	t.deepEqual(matcher(['phoenix'], ['', 'bar']), []);
 	t.deepEqual(matcher(['phoenix'], ['', 'bar', '']), []);
 	t.deepEqual(matcher(['phoenix'], ['bar', '', 'bar']), []);
-	t.throws(() => matcher(['phoenix'], [undefined, '']));
-	t.throws(() => matcher(['phoenix'], ['', undefined]));
-	t.throws(() => matcher(['phoenix'], ['', undefined, '']));
-	t.throws(() => matcher(['phoenix'], [undefined, '', undefined]));
+	t.deepEqual(matcher(['phoenix'], [undefined, '']), []);
+	t.deepEqual(matcher(['phoenix'], ['', undefined]), []);
+	t.deepEqual(matcher(['phoenix'], ['', undefined, '']), []);
+	t.deepEqual(matcher(['phoenix'], [undefined, '', undefined]), []);
 	t.deepEqual(matcher(['phoenix'], ['', '']), []);
 	t.deepEqual(matcher(['phoenix'], ['']), []);
-	t.deepEqual(matcher(['phoenix'], []), ['phoenix']);
-	t.throws(() => matcher(['phoenix'], [undefined]));
-
-	t.throws(() => matcher(['phoenix'], ''));
-	t.throws(() => matcher(['phoenix'], undefined));
+	t.deepEqual(matcher(['phoenix'], ''), []);
+	t.deepEqual(matcher(['phoenix'], []), []);
+	t.deepEqual(matcher(['phoenix'], [undefined]), []);
+	t.deepEqual(matcher(['phoenix'], undefined), []);
 
 	t.deepEqual(matcher(['phoenix', ''], ['bar']), []);
 	t.deepEqual(matcher(['', 'phoenix'], ['bar']), []);
@@ -74,26 +73,25 @@ test('handles empty arguments inconsistently', t => {
 	t.deepEqual(matcher([undefined, '', undefined], ['bar']), []);
 	t.deepEqual(matcher(['', ''], ['bar']), []);
 	t.deepEqual(matcher([''], ['bar']), []);
+	t.deepEqual(matcher('', ['bar']), []);
 	t.deepEqual(matcher([], ['bar']), []);
 	t.deepEqual(matcher([undefined], ['bar']), []);
-
-	t.throws(() => matcher('', ['bar']));
-	t.throws(() => matcher(undefined, ['bar']));
+	t.deepEqual(matcher(undefined, ['bar']), []);
 
 	t.false(matcher.isMatch(['phoenix'], ['bar', '']));
 	t.false(matcher.isMatch(['phoenix'], ['', 'bar']));
 	t.false(matcher.isMatch(['phoenix'], ['', 'bar', '']));
 	t.false(matcher.isMatch(['phoenix'], ['bar', '', 'bar']));
-	t.throws(() => matcher.isMatch(['phoenix'], [undefined, '']));
+	t.false(matcher.isMatch(['phoenix'], [undefined, '']));
 	t.false(matcher.isMatch(['phoenix'], ['', undefined]));
 	t.false(matcher.isMatch(['phoenix'], ['', undefined, '']));
-	t.throws(() => matcher.isMatch(['phoenix'], [undefined, '', undefined]));
+	t.false(matcher.isMatch(['phoenix'], [undefined, '', undefined]));
 	t.false(matcher.isMatch(['phoenix'], ['', '']));
 	t.false(matcher.isMatch(['phoenix'], ['']));
 	t.false(matcher.isMatch(['phoenix'], ''));
-	t.true(matcher.isMatch(['phoenix'], []));
-	t.throws(() => matcher.isMatch(['phoenix'], [undefined]));
-	t.throws(() => matcher.isMatch(['phoenix'], undefined));
+	t.false(matcher.isMatch(['phoenix'], []));
+	t.false(matcher.isMatch(['phoenix'], [undefined]));
+	t.false(matcher.isMatch(['phoenix'], undefined));
 
 	t.false(matcher.isMatch(['phoenix', ''], ['bar']));
 	t.false(matcher.isMatch(['', 'phoenix'], ['bar']));
@@ -112,61 +110,95 @@ test('handles empty arguments inconsistently', t => {
 
 	t.deepEqual(matcher([''], ['bar', '']), ['']);
 	t.deepEqual(matcher([''], ['', 'bar']), ['']);
-	t.throws(() => matcher([''], [undefined, '']));
-	t.throws(() => matcher([''], ['', undefined]));
+	t.deepEqual(matcher([''], [undefined, '']), ['']);
+	t.deepEqual(matcher([''], ['', undefined]), ['']);
 	t.deepEqual(matcher([''], ['', '']), ['']);
-	t.deepEqual(matcher([''], ['']), ['']);
 
 	t.deepEqual(matcher(['phoenix', ''], ['']), ['']);
 	t.deepEqual(matcher(['', 'phoenix'], ['']), ['']);
 	t.deepEqual(matcher([undefined, ''], ['']), ['']);
 	t.deepEqual(matcher(['', undefined], ['']), ['']);
 	t.deepEqual(matcher(['', ''], ['']), ['', '']);
+
 	t.deepEqual(matcher([''], ['']), ['']);
+	t.deepEqual(matcher([''], ['*']), ['']);
 
-	t.throws(() => matcher([undefined], ['bar', undefined]));
-	t.throws(() => matcher([undefined], [undefined, 'bar']));
-	t.throws(() => matcher([undefined], ['', undefined]));
-	t.throws(() => matcher([undefined], [undefined, '']));
-	t.throws(() => matcher([undefined], [undefined, undefined]));
-	t.throws(() => matcher([undefined], [undefined]));
-	t.throws(() => matcher([undefined], undefined));
+	t.deepEqual(matcher([undefined], ['bar', undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined, 'bar']), []);
+	t.deepEqual(matcher([undefined], ['', undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined, '']), []);
+	t.deepEqual(matcher([undefined], [undefined, undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined], undefined), []);
 
-	t.throws(() => matcher(['phoenix', undefined], [undefined]));
-	t.throws(() => matcher([undefined, 'phoenix'], [undefined]));
-	t.throws(() => matcher(['', undefined], [undefined]));
-	t.throws(() => matcher([undefined, ''], [undefined]));
-	t.throws(() => matcher([undefined, undefined], [undefined]));
-	t.throws(() => matcher([undefined], [undefined]));
-	t.throws(() => matcher(undefined, [undefined]));
+	t.deepEqual(matcher(['phoenix', undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined, 'phoenix'], [undefined]), []);
+	t.deepEqual(matcher(['', undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined, ''], [undefined]), []);
+	t.deepEqual(matcher([undefined, undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined]), []);
+	t.deepEqual(matcher(undefined, [undefined]), []);
 
-	t.false(matcher.isMatch([''], ['bar', '']));
-	t.false(matcher.isMatch([''], ['', 'bar']));
-	t.throws(() => matcher.isMatch([''], [undefined, '']));
-	t.throws(() => matcher.isMatch([''], ['', undefined]));
+	t.deepEqual(matcher([], []), []);
+	t.deepEqual(matcher([], ['*']), []);
+
+	t.true(matcher.isMatch([''], [undefined, '']));
+	t.true(matcher.isMatch([''], ['', undefined]));
 	t.true(matcher.isMatch([''], ['', '']));
-	t.true(matcher.isMatch([''], ['']));
 
 	t.true(matcher.isMatch(['phoenix', ''], ['']));
 	t.true(matcher.isMatch(['', 'phoenix'], ['']));
 	t.true(matcher.isMatch([undefined, ''], ['']));
 	t.true(matcher.isMatch(['', undefined], ['']));
 	t.true(matcher.isMatch(['', ''], ['']));
+
 	t.true(matcher.isMatch([''], ['']));
+	t.true(matcher.isMatch([''], ['*']));
 
 	t.false(matcher.isMatch([undefined], ['bar', undefined]));
-	t.throws(() => matcher.isMatch([undefined], [undefined, 'bar']));
+	t.false(matcher.isMatch([undefined], [undefined, 'bar']));
 	t.false(matcher.isMatch([undefined], ['', undefined]));
-	t.throws(() => matcher.isMatch([undefined], [undefined, '']));
-	t.throws(() => matcher.isMatch([undefined], [undefined, undefined]));
-	t.throws(() => matcher.isMatch([undefined], [undefined]));
-	t.throws(() => matcher.isMatch([undefined], undefined));
+	t.false(matcher.isMatch([undefined], [undefined, '']));
+	t.false(matcher.isMatch([undefined], [undefined, undefined]));
+	t.false(matcher.isMatch([undefined], [undefined]));
+	t.false(matcher.isMatch([undefined], undefined));
 
-	t.throws(() => matcher.isMatch(['phoenix', undefined], [undefined]));
-	t.throws(() => matcher.isMatch([undefined, 'phoenix'], [undefined]));
-	t.throws(() => matcher.isMatch(['', undefined], [undefined]));
-	t.throws(() => matcher.isMatch([undefined, ''], [undefined]));
-	t.throws(() => matcher.isMatch([undefined, undefined], [undefined]));
-	t.throws(() => matcher.isMatch([undefined], [undefined]));
-	t.throws(() => matcher.isMatch(undefined, [undefined]));
+	t.false(matcher.isMatch(['phoenix', undefined], [undefined]));
+	t.false(matcher.isMatch([undefined, 'phoenix'], [undefined]));
+	t.false(matcher.isMatch(['', undefined], [undefined]));
+	t.false(matcher.isMatch([undefined, ''], [undefined]));
+	t.false(matcher.isMatch([undefined, undefined], [undefined]));
+	t.false(matcher.isMatch([undefined], [undefined]));
+	t.false(matcher.isMatch(undefined, [undefined]));
+
+	t.false(matcher.isMatch([], []));
+	t.false(matcher.isMatch([], ['*']));
+
+	t.throws(() => matcher(['phoenix'], [0]));
+	t.throws(() => matcher(['phoenix'], [null]));
+	t.throws(() => matcher(['phoenix'], [false]));
+	t.throws(() => matcher(['phoenix'], 0));
+	t.throws(() => matcher(['phoenix'], null));
+	t.throws(() => matcher(['phoenix'], false));
+
+	t.throws(() => matcher([0], ['bar']));
+	t.throws(() => matcher([null], ['bar']));
+	t.throws(() => matcher([false], ['bar']));
+	t.throws(() => matcher(0, ['bar']));
+	t.throws(() => matcher(null, ['bar']));
+	t.throws(() => matcher(false, ['bar']));
+
+	t.throws(() => matcher.isMatch(['phoenix'], [0]));
+	t.throws(() => matcher.isMatch(['phoenix'], [null]));
+	t.throws(() => matcher.isMatch(['phoenix'], [false]));
+	t.throws(() => matcher.isMatch(['phoenix'], 0));
+	t.throws(() => matcher.isMatch(['phoenix'], null));
+	t.throws(() => matcher.isMatch(['phoenix'], false));
+
+	t.throws(() => matcher.isMatch([0], ['bar']));
+	t.throws(() => matcher.isMatch([null], ['bar']));
+	t.throws(() => matcher.isMatch([false], ['bar']));
+	t.throws(() => matcher.isMatch(0, ['bar']));
+	t.throws(() => matcher.isMatch(null, ['bar']));
+	t.throws(() => matcher.isMatch(false, ['bar']));
 });
