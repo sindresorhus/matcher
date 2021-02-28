@@ -21,6 +21,15 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
+matcher('moo', ['']);
+//=> []
+
+matcher('moo', []);
+//=> []
+
+matcher([''], ['']);
+//=> ['']
+
 matcher.isMatch('unicorn', 'uni*');
 //=> true
 
@@ -53,6 +62,21 @@ matcher.isMatch(['foo', 'bar'], ['a*', 'b*']);
 
 matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
 //=> false
+
+matcher.isMatch('unicorn', ['']);
+//=> false
+
+matcher.isMatch('unicorn', []);
+//=> false
+
+matcher.isMatch([], 'bar');
+//=> false
+
+matcher.isMatch([], []);
+//=> false
+
+matcher.isMatch('', '');
+//=> true
 ```
 
 ## API
@@ -61,13 +85,13 @@ It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 ### matcher(inputs, patterns, options?)
 
-Accepts an array of `input`'s and `pattern`'s.
+Accepts a string or an array of strings for both `inputs` and `patterns`.
 
 Returns an array of `inputs` filtered based on the `patterns`.
 
 ### matcher.isMatch(input, pattern, options?)
 
-Accepts either a string or array of strings for both `input` and `pattern`.
+Accepts a string or an array of strings for both `inputs` and `patterns`.
 
 Returns a `boolean` of whether any given `input` matches every given `pattern`.
 
