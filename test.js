@@ -1,5 +1,5 @@
 import test from 'ava';
-import matcher from '.';
+import matcher from './index.js';
 
 test('matcher()', t => {
 	t.deepEqual(matcher(['foo', 'bar'], ['foo']), ['foo']);
@@ -8,7 +8,10 @@ test('matcher()', t => {
 	t.deepEqual(matcher(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: true}), ['moo']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: false}), ['moo', 'MOO']);
-	t.notThrows(() => matcher([], []));
+
+	t.notThrows(() => {
+		matcher([], []);
+	});
 });
 
 test('matcher.isMatch()', t => {
@@ -174,31 +177,99 @@ test('handles empty arguments consistently', t => {
 	t.false(matcher.isMatch([], []));
 	t.false(matcher.isMatch([], ['*']));
 
-	t.throws(() => matcher(['phoenix'], [0]));
-	t.throws(() => matcher(['phoenix'], [null]));
-	t.throws(() => matcher(['phoenix'], [false]));
-	t.throws(() => matcher(['phoenix'], 0));
-	t.throws(() => matcher(['phoenix'], null));
-	t.throws(() => matcher(['phoenix'], false));
+	t.throws(() => {
+		matcher(['phoenix'], [0]);
+	});
 
-	t.throws(() => matcher([0], ['bar']));
-	t.throws(() => matcher([null], ['bar']));
-	t.throws(() => matcher([false], ['bar']));
-	t.throws(() => matcher(0, ['bar']));
-	t.throws(() => matcher(null, ['bar']));
-	t.throws(() => matcher(false, ['bar']));
+	t.throws(() => {
+		matcher(['phoenix'], [null]);
+	});
 
-	t.throws(() => matcher.isMatch(['phoenix'], [0]));
-	t.throws(() => matcher.isMatch(['phoenix'], [null]));
-	t.throws(() => matcher.isMatch(['phoenix'], [false]));
-	t.throws(() => matcher.isMatch(['phoenix'], 0));
-	t.throws(() => matcher.isMatch(['phoenix'], null));
-	t.throws(() => matcher.isMatch(['phoenix'], false));
+	t.throws(() => {
+		matcher(['phoenix'], [false]);
+	});
 
-	t.throws(() => matcher.isMatch([0], ['bar']));
-	t.throws(() => matcher.isMatch([null], ['bar']));
-	t.throws(() => matcher.isMatch([false], ['bar']));
-	t.throws(() => matcher.isMatch(0, ['bar']));
-	t.throws(() => matcher.isMatch(null, ['bar']));
-	t.throws(() => matcher.isMatch(false, ['bar']));
+	t.throws(() => {
+		matcher(['phoenix'], 0);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], null);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], false);
+	});
+
+	t.throws(() => {
+		matcher([0], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher([null], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher([false], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher(0, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher(null, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher(false, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], [0]);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], [null]);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], [false]);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], 0);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], null);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], false);
+	});
+
+	t.throws(() => {
+		matcher.isMatch([0], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch([null], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch([false], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(0, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(null, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(false, ['bar']);
+	});
 });

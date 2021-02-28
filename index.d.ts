@@ -13,37 +13,6 @@ declare namespace matcher {
 
 declare const matcher: {
 	/**
-	Simple [wildcard](https://en.wikipedia.org/wiki/Wildcard_character) matching.
-
-	It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
-
-	@param inputs - String or array of strings to match.
-	@param patterns - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
-	@returns The `inputs` filtered based on the `patterns`.
-
-	@example
-	```
-	import matcher = require('matcher');
-
-	matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
-	//=> ['moo']
-
-	matcher(['foo', 'bar', 'moo'], ['!*oo']);
-	//=> ['bar']
-
-	matcher('moo', ['']);
-	//=> []
-
-	matcher('moo', []);
-	//=> []
-
-	matcher([''], ['']);
-	//=> ['']
-	```
-	*/
-	(inputs: string | readonly string[], patterns: string | readonly string[], options?: matcher.Options): string[];
-
-	/**
 	It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 	@param inputs - String or array of strings to match.
@@ -104,6 +73,37 @@ declare const matcher: {
 	```
 	*/
 	isMatch: (inputs: string | readonly string[], patterns: string | readonly string[], options?: matcher.Options) => boolean;
+
+	/**
+	Simple [wildcard](https://en.wikipedia.org/wiki/Wildcard_character) matching.
+
+	It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
+
+	@param inputs - String or array of strings to match.
+	@param patterns - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+	@returns The `inputs` filtered based on the `patterns`.
+
+	@example
+	```
+	import matcher = require('matcher');
+
+	matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
+	//=> ['moo']
+
+	matcher(['foo', 'bar', 'moo'], ['!*oo']);
+	//=> ['bar']
+
+	matcher('moo', ['']);
+	//=> []
+
+	matcher('moo', []);
+	//=> []
+
+	matcher([''], ['']);
+	//=> ['']
+	```
+	*/
+	(inputs: string | readonly string[], patterns: string | readonly string[], options?: matcher.Options): string[];
 };
 
 export = matcher;

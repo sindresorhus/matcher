@@ -4,6 +4,7 @@
 	"description": "Simple wildcard matching",
 	"license": "MIT",
 	"repository": "sindresorhus/matcher",
+	"funding": "https://github.com/sponsors/sindresorhus",
 	"author": {
 		"name": "Sindre Sorhus",
 		"email": "sindresorhus@gmail.com",
@@ -43,12 +44,7 @@
 	"devDependencies": {
 		"ava": "^2.4.0",
 		"matcha": "^0.7.0",
-		"tsd": "^0.11.0",
-		"xo": "^0.30.0"
-	},
-	"xo": {
-		"rules": {
-			"@typescript-eslint/member-ordering": "off"
-		}
+		"tsd": "^0.14.0",
+		"xo": "^0.38.2"
 	}
 }
