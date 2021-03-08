@@ -5,6 +5,7 @@ test('matcher()', t => {
 	t.deepEqual(matcher(['foo', 'bar'], ['foo']), ['foo']);
 	t.deepEqual(matcher(['foo', 'bar'], ['bar']), ['bar']);
 	t.deepEqual(matcher(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['fo*', '!bar', 'ba*']), ['foo']);
 	t.deepEqual(matcher(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: true}), ['moo']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: false}), ['moo', 'MOO']);

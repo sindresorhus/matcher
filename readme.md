@@ -118,7 +118,9 @@ Ensure you use this correctly. For example, files and directories should be matc
 
 Type: `string | string[]`
 
-Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+Use `*` to match zero or more characters.
+
+A leading `!` negates the pattern - any matching inputs will be excluded from the results.
 
 ## Benchmark
 

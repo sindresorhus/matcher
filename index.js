@@ -76,8 +76,8 @@ module.exports = (inputs, patterns, options) => {
 		let matches = isFirstPatternNegated;
 
 		for (const pattern of patterns) {
-			if (pattern.test(input)) {
-				matches = !pattern.negated;
+			if (pattern.test(input) && !(matches = !pattern.negated)) {
+				break;
 			}
 		}
 
