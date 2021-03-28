@@ -120,7 +120,10 @@ Type: `string | string[]`
 
 Use `*` to match zero or more characters.
 
-A leading `!` negates the pattern - any matching inputs will be excluded from the results.
+A leading `!` negates the pattern.
+
+An input string will be omitted, if it does not match any non-negated patterns present,
+or if it matches a negated pattern, or if no pattern is present.
 
 ## Benchmark
 

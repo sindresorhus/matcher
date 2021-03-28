@@ -65,28 +65,37 @@ module.exports = (inputs, patterns, options) => {
 		return [];
 	}
 
-	const isFirstPatternNegated = patterns[0][0] === '!';
-
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
 
 	for (const input of inputs) {
-		// If first pattern is negated we include everything to match user expectation.
-		let matches = isFirstPatternNegated;
+		let matches;
+		//	String is included only if it matchers at least one non-negated pattern supplied.
+		//	Matching a negated pattern excludes the string.
 
 		for (const pattern of patterns) {
-			if (pattern.test(input) && !(matches = !pattern.negated)) {
-				break;
+			if (pattern.test(input)) {
+				matches = !pattern.negated;
+
+				if (!matches) {
+					break;
+				}
 			}
 		}
 
-		if (matches) {
+		if (matches || (matches === undefined && !patterns.some(p => !p.negated))) {
 			result.push(input);
 		}
 	}
 
 	return result;
+};
+
+module.exports.isMatch = (inputs, patterns, options) => {
+	const matching = module.exports(inputs, patterns, options);
+
+	return matching.length > 0;
 };
 
 module.exports.isMatch = (inputs, patterns, options) => {

@@ -16,8 +16,8 @@ declare const matcher: {
 	It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 	@param inputs - String or array of strings to match.
-	@param patterns - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
-	@returns Whether any given `input` matches every given `pattern`.
+	@param patterns - String or array of string patterns.
+	@returns The `inputs` filtered based on the `patterns`.
 
 	@example
 	```
@@ -81,7 +81,7 @@ declare const matcher: {
 
 	@param inputs - String or array of strings to match.
 	@param patterns - String or array of string patterns. Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
-	@returns The `inputs` filtered based on the `patterns`.
+	@returns Whether any given `input` matches every given `pattern`.
 
 	@example
 	```
