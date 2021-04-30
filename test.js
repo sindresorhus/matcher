@@ -5,10 +5,6 @@ test('matcher()', t => {
 	t.deepEqual(matcher(['foo', 'bar'], ['foo']), ['foo']);
 	t.deepEqual(matcher(['foo', 'bar'], ['bar']), ['bar']);
 	t.deepEqual(matcher(['foo', 'bar'], ['fo*', 'ba*', '!bar']), ['foo']);
-	t.deepEqual(matcher(['foo', 'bar'], ['fo*', '!bar', 'ba*']), ['foo']);
-	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fo*', 'ba*']), ['foo']);
-	t.deepEqual(matcher(['foo', 'bar'], ['!bar']), ['foo']);
-	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fu']), []);
 	t.deepEqual(matcher(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: true}), ['moo']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: false}), ['moo', 'MOO']);
@@ -40,10 +36,6 @@ test('matcher.isMatch()', t => {
 	t.true(matcher.isMatch(['foo', 'bar', 'moo'], ['*oo', '!f*']));
 	t.true(matcher.isMatch('moo', ['*oo', '!f*']));
 	t.true(matcher.isMatch('UNICORN', ['!*oo', 'UNI*'], {caseSensitive: true}));
-
-	t.true(matcher.isMatch(['foo', 'bar'], ['fo*', '*oo', '!bar']));
-	t.true(matcher.isMatch(['foo', 'bar'], ['!bar', 'fo*', '*oo']));
-	t.true(matcher.isMatch(['foo', 'bar'], ['!bar']));
 
 	t.false(matcher.isMatch(['unicorn', 'bar', 'wizard'], '*oo'));
 	t.false(matcher.isMatch(['foo', 'bar', 'unicorn'], ['*horn', '!b*']));
@@ -280,4 +272,17 @@ test('handles empty arguments consistently', t => {
 	t.throws(() => {
 		matcher.isMatch(false, ['bar']);
 	});
+});
+
+test('matcher() negated pattern placement', t => {
+	t.deepEqual(matcher(['foo', 'bar'], ['fo*', '!bar', 'ba*']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fo*', 'ba*']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fu']), []);
+});
+
+test('matcher.isMatch() negated pattern placement', t => {
+	t.true(matcher.isMatch(['foo', 'bar'], ['fo*', '*oo', '!bar']));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar', 'fo*', '*oo']));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar']));
 });
