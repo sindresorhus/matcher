@@ -97,20 +97,3 @@ module.exports.isMatch = (inputs, patterns, options) => {
 
 	return matching.length > 0;
 };
-
-module.exports.isMatch = (inputs, patterns, options) => {
-	inputs = sanitizeArray(inputs, 'inputs');
-	patterns = sanitizeArray(patterns, 'patterns');
-
-	if (patterns.length === 0) {
-		return false;
-	}
-
-	return inputs.some(input => {
-		return patterns.every(pattern => {
-			const regexp = makeRegexp(pattern, options);
-			const matches = regexp.test(input);
-			return regexp.negated ? !matches : matches;
-		});
-	});
-};
