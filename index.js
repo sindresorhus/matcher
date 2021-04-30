@@ -84,7 +84,8 @@ module.exports = (inputs, patterns, options) => {
 			}
 		}
 
-		if (matches || (matches === undefined && !patterns.some(p => !p.negated))) {
+		if (matches || (matches === undefined && !patterns.some(pattern =>
+			!pattern.negated))) {
 			result.push(input);
 		}
 	}
