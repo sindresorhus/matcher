@@ -57,7 +57,7 @@ function makeRegexp(pattern, options) {
 	return regexp;
 }
 
-module.exports = (inputs, patterns, options) => {
+const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	inputs = sanitizeArray(inputs, 'inputs');
 	patterns = sanitizeArray(patterns, 'patterns');
 
@@ -86,14 +86,20 @@ module.exports = (inputs, patterns, options) => {
 
 		if (matches || (matches === undefined && !patterns.some(pattern => !pattern.negated))) {
 			result.push(input);
+
+			if (firstMatchOnly) {
+				break;
+			}
 		}
 	}
 
 	return result;
 };
 
+module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
+
 module.exports.isMatch = (inputs, patterns, options) => {
-	const matching = module.exports(inputs, patterns, options);
+	const matching = module.exports(inputs, patterns, options, true);
 
 	return matching.length > 0;
 };
