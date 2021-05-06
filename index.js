@@ -99,7 +99,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
 
 module.exports.isMatch = (inputs, patterns, options) => {
-	const matching = module.exports(inputs, patterns, options, true);
+	const matching = matcher(inputs, patterns, options, true);
 
 	return matching.length > 0;
 };
