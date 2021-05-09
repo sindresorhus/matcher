@@ -89,13 +89,13 @@ Accepts a string or an array of strings for both `inputs` and `patterns`.
 
 Returns an array of `inputs` filtered based on the `patterns`.
 
-### matcher.isMatch(input, pattern, options?)
+### matcher.isMatch(inputs, patterns, options?)
 
 Accepts a string or an array of strings for both `inputs` and `patterns`.
 
-Returns a `boolean` of whether any given `input` matches every given `pattern`.
+Returns a `boolean` of whether any of given `inputs` matches all the `patterns`.
 
-#### input
+#### inputs
 
 Type: `string | string[]`
 
@@ -114,7 +114,7 @@ Treat uppercase and lowercase characters as being the same.
 
 Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
-#### pattern
+#### patterns
 
 Type: `string | string[]`
 
