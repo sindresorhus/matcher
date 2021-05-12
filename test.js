@@ -273,3 +273,16 @@ test('handles empty arguments consistently', t => {
 		matcher.isMatch(false, ['bar']);
 	});
 });
+
+test('matcher() negated pattern placement', t => {
+	t.deepEqual(matcher(['foo', 'bar'], ['fo*', '!bar', 'ba*']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fo*', 'ba*']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fu']), []);
+});
+
+test('matcher.isMatch() negated pattern placement', t => {
+	t.true(matcher.isMatch(['foo', 'bar'], ['fo*', '*oo', '!bar']));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar', 'fo*', '*oo']));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar']));
+});

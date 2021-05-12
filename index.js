@@ -57,7 +57,7 @@ function makeRegexp(pattern, options) {
 	return regexp;
 }
 
-module.exports = (inputs, patterns, options) => {
+const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	inputs = sanitizeArray(inputs, 'inputs');
 	patterns = sanitizeArray(patterns, 'patterns');
 
@@ -65,43 +65,41 @@ module.exports = (inputs, patterns, options) => {
 		return [];
 	}
 
-	const isFirstPatternNegated = patterns[0][0] === '!';
-
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
 
 	for (const input of inputs) {
-		// If first pattern is negated we include everything to match user expectation.
-		let matches = isFirstPatternNegated;
+		let matches;
+		//	String is included only if it matchers at least one non-negated pattern supplied.
+		//	Matching a negated pattern excludes the string.
 
 		for (const pattern of patterns) {
 			if (pattern.test(input)) {
 				matches = !pattern.negated;
+
+				if (!matches) {
+					break;
+				}
 			}
 		}
 
-		if (matches) {
+		if (matches || (matches === undefined && !patterns.some(pattern => !pattern.negated))) {
 			result.push(input);
+
+			if (firstMatchOnly) {
+				break;
+			}
 		}
 	}
 
 	return result;
 };
 
+module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
+
 module.exports.isMatch = (inputs, patterns, options) => {
-	inputs = sanitizeArray(inputs, 'inputs');
-	patterns = sanitizeArray(patterns, 'patterns');
+	const matching = matcher(inputs, patterns, options, true);
 
-	if (patterns.length === 0) {
-		return false;
-	}
-
-	return inputs.some(input => {
-		return patterns.every(pattern => {
-			const regexp = makeRegexp(pattern, options);
-			const matches = regexp.test(input);
-			return regexp.negated ? !matches : matches;
-		});
-	});
+	return matching.length > 0;
 };
