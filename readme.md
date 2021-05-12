@@ -1,4 +1,4 @@
-# matcher [![Build Status](https://travis-ci.com/sindresorhus/matcher.svg?branch=master)](https://travis-ci.com/sindresorhus/matcher)
+# matcher
 
 > Simple [wildcard](https://en.wikipedia.org/wiki/Wildcard_character) matching
 
@@ -21,11 +21,14 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
-matcher(['a', 'b', 'c'], ['a*', 'c'], {allPatterns: true});
-//=> ['a', 'c']
-
-matcher(['a', 'b', 'c'], ['a*', 'cc'], {allPatterns: true});
+matcher('moo', ['']);
 //=> []
+
+matcher('moo', []);
+//=> []
+
+matcher([''], ['']);
+//=> ['']
 
 matcher.isMatch('unicorn', 'uni*');
 //=> true
@@ -59,6 +62,21 @@ matcher.isMatch(['foo', 'bar'], ['a*', 'b*']);
 
 matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
 //=> false
+
+matcher.isMatch('unicorn', ['']);
+//=> false
+
+matcher.isMatch('unicorn', []);
+//=> false
+
+matcher.isMatch([], 'bar');
+//=> false
+
+matcher.isMatch([], []);
+//=> false
+
+matcher.isMatch('', '');
+//=> true
 ```
 
 ## API
@@ -67,17 +85,17 @@ It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 ### matcher(inputs, patterns, options?)
 
-Accepts an array of `input`'s and `pattern`'s.
+Accepts a string or an array of strings for both `inputs` and `patterns`.
 
 Returns an array of `inputs` filtered based on the `patterns`.
 
-### matcher.isMatch(input, pattern, options?)
+### matcher.isMatch(inputs, patterns, options?)
 
-Accepts either a string or array of strings for both `input` and `pattern`.
+Accepts a string or an array of strings for both `inputs` and `patterns`.
 
-Returns a `boolean` of whether any given `input` matches every given `pattern`.
+Returns a `boolean` of whether any of given `inputs` matches all the `patterns`.
 
-#### input
+#### inputs
 
 Type: `string | string[]`
 
@@ -96,20 +114,15 @@ Treat uppercase and lowercase characters as being the same.
 
 Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
-##### allPatterns
-
-Type: `boolean`\
-Default: `false`
-
-Requires every _`matcher()`_ pattern to have at least one positive match.
-
-This option has no effect on _`isMatch()`_.
-
-#### pattern
+#### patterns
 
 Type: `string | string[]`
 
-Use `*` to match zero or more characters. A pattern starting with `!` will be negated.
+Use `*` to match zero or more characters.
+
+A leading `!` negates the pattern.
+
+An input string will be omitted, if it does not match any non-negated patterns present, or if it matches a negated pattern, or if no pattern is present.
 
 ## Benchmark
 

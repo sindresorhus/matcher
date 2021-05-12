@@ -3,6 +3,33 @@ const escapeStringRegexp = require('escape-string-regexp');
 
 const regexpCache = new Map();
 
+function sanitizeArray(input, inputName) {
+	if (!Array.isArray(input)) {
+		switch (typeof input) {
+			case 'string':
+				input = [input];
+				break;
+			case 'undefined':
+				input = [];
+				break;
+			default:
+				throw new TypeError(`Expected '${inputName}' to be a string or an array, but got a type of '${typeof input}'`);
+		}
+	}
+
+	return input.filter(string => {
+		if (typeof string !== 'string') {
+			if (typeof string === 'undefined') {
+				return false;
+			}
+
+			throw new TypeError(`Expected '${inputName}' to be an array of strings, but found a type of '${typeof string}' in the array`);
+		}
+
+		return true;
+	});
+}
+
 function makeRegexp(pattern, options) {
 	options = {
 		caseSensitive: false,
@@ -30,50 +57,49 @@ function makeRegexp(pattern, options) {
 	return regexp;
 }
 
-const matcher = (inputs, patterns, options) => {
-	if (!(Array.isArray(inputs) && Array.isArray(patterns))) {
-		throw new TypeError(`Expected two arrays, got ${typeof inputs} ${typeof patterns}`);
-	}
+const matcher = (inputs, patterns, options, firstMatchOnly) => {
+	inputs = sanitizeArray(inputs, 'inputs');
+	patterns = sanitizeArray(patterns, 'patterns');
 
 	if (patterns.length === 0) {
-		return inputs;
+		return [];
 	}
-
-	const isFirstPatternNegated = patterns[0][0] === '!';
-	const {allPatterns} = options || {};
 
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const result = [];
-	const matched = patterns.map(rx => allPatterns ? (rx.negated ? 1 : 0) : 1);
 
 	for (const input of inputs) {
-		// If first pattern is negated we include everything to match user expectation.
-		let matches = isFirstPatternNegated;
+		let matches;
+		//	String is included only if it matchers at least one non-negated pattern supplied.
+		//	Matching a negated pattern excludes the string.
 
-		for (let i = 0, pattern; i < patterns.length; ++i) {
-			if ((pattern = patterns[i]).test(input)) {
-				if ((matches = !pattern.negated)) {
-					matched[i] += 1;
+		for (const pattern of patterns) {
+			if (pattern.test(input)) {
+				matches = !pattern.negated;
+
+				if (!matches) {
+					break;
 				}
 			}
 		}
 
-		if (matches) {
+		if (matches || (matches === undefined && !patterns.some(pattern => !pattern.negated))) {
 			result.push(input);
+
+			if (firstMatchOnly) {
+				break;
+			}
 		}
 	}
 
-	return matched.every(Boolean) ? result : [];
+	return result;
 };
 
-matcher.isMatch = (input, pattern, options = {}) => {
-	const inputArray = Array.isArray(input) ? input : [input];
-	const patternArray = Array.isArray(pattern) ? pattern : [pattern];
+module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
 
-	return inputArray.some(item => {
-		return matcher([item], patternArray, {...options, allPatterns: true}).length !== 0;
-	});
+module.exports.isMatch = (inputs, patterns, options) => {
+	const matching = matcher(inputs, patterns, options, true);
+
+	return matching.length > 0;
 };
-
-module.exports = matcher;

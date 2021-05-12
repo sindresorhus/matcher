@@ -1,5 +1,5 @@
 import test from 'ava';
-import matcher from '.';
+import matcher from './index.js';
 
 test('matcher()', t => {
 	t.deepEqual(matcher(['foo', 'bar'], ['foo']), ['foo']);
@@ -8,7 +8,10 @@ test('matcher()', t => {
 	t.deepEqual(matcher(['foo', 'bar', 'moo'], ['!*o']), ['bar']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: true}), ['moo']);
 	t.deepEqual(matcher(['moo', 'MOO'], ['*oo'], {caseSensitive: false}), ['moo', 'MOO']);
-	t.notThrows(() => matcher([], []));
+
+	t.notThrows(() => {
+		matcher([], []);
+	});
 });
 
 test('matcher.isMatch()', t => {
@@ -47,14 +50,239 @@ test('matches across newlines', t => {
 	t.true(matcher.isMatch(['foo\nbar'], ['foo*r']));
 });
 
-test('matcher honors the \'allPatterns\' option', t => {
-	t.deepEqual(matcher(['a1', 'b', 'a2', 'c'], ['a*', 'c'], {allPatterns: true}), ['a1', 'a2', 'c']);
-	t.deepEqual(matcher(['a1', 'b', 'a2', 'c'], ['a*', 'c1'], {allPatterns: true}), []);
+test('handles empty arguments consistently', t => {
+	t.deepEqual(matcher(['phoenix'], ['bar', '']), []);
+	t.deepEqual(matcher(['phoenix'], ['', 'bar']), []);
+	t.deepEqual(matcher(['phoenix'], ['', 'bar', '']), []);
+	t.deepEqual(matcher(['phoenix'], ['bar', '', 'bar']), []);
+	t.deepEqual(matcher(['phoenix'], [undefined, '']), []);
+	t.deepEqual(matcher(['phoenix'], ['', undefined]), []);
+	t.deepEqual(matcher(['phoenix'], ['', undefined, '']), []);
+	t.deepEqual(matcher(['phoenix'], [undefined, '', undefined]), []);
+	t.deepEqual(matcher(['phoenix'], ['', '']), []);
+	t.deepEqual(matcher(['phoenix'], ['']), []);
+	t.deepEqual(matcher(['phoenix'], ''), []);
+	t.deepEqual(matcher(['phoenix'], []), []);
+	t.deepEqual(matcher(['phoenix'], [undefined]), []);
+	t.deepEqual(matcher(['phoenix'], undefined), []);
+
+	t.deepEqual(matcher(['phoenix', ''], ['bar']), []);
+	t.deepEqual(matcher(['', 'phoenix'], ['bar']), []);
+	t.deepEqual(matcher(['', 'phoenix', ''], ['bar']), []);
+	t.deepEqual(matcher(['phoenix', '', 'phoenix'], ['bar']), []);
+	t.deepEqual(matcher([undefined, ''], ['bar']), []);
+	t.deepEqual(matcher(['', undefined], ['bar']), []);
+	t.deepEqual(matcher(['', undefined, ''], ['bar']), []);
+	t.deepEqual(matcher([undefined, '', undefined], ['bar']), []);
+	t.deepEqual(matcher(['', ''], ['bar']), []);
+	t.deepEqual(matcher([''], ['bar']), []);
+	t.deepEqual(matcher('', ['bar']), []);
+	t.deepEqual(matcher([], ['bar']), []);
+	t.deepEqual(matcher([undefined], ['bar']), []);
+	t.deepEqual(matcher(undefined, ['bar']), []);
+
+	t.false(matcher.isMatch(['phoenix'], ['bar', '']));
+	t.false(matcher.isMatch(['phoenix'], ['', 'bar']));
+	t.false(matcher.isMatch(['phoenix'], ['', 'bar', '']));
+	t.false(matcher.isMatch(['phoenix'], ['bar', '', 'bar']));
+	t.false(matcher.isMatch(['phoenix'], [undefined, '']));
+	t.false(matcher.isMatch(['phoenix'], ['', undefined]));
+	t.false(matcher.isMatch(['phoenix'], ['', undefined, '']));
+	t.false(matcher.isMatch(['phoenix'], [undefined, '', undefined]));
+	t.false(matcher.isMatch(['phoenix'], ['', '']));
+	t.false(matcher.isMatch(['phoenix'], ['']));
+	t.false(matcher.isMatch(['phoenix'], ''));
+	t.false(matcher.isMatch(['phoenix'], []));
+	t.false(matcher.isMatch(['phoenix'], [undefined]));
+	t.false(matcher.isMatch(['phoenix'], undefined));
+
+	t.false(matcher.isMatch(['phoenix', ''], ['bar']));
+	t.false(matcher.isMatch(['', 'phoenix'], ['bar']));
+	t.false(matcher.isMatch(['', 'phoenix', ''], ['bar']));
+	t.false(matcher.isMatch(['phoenix', '', 'phoenix'], ['bar']));
+	t.false(matcher.isMatch([undefined, ''], ['bar']));
+	t.false(matcher.isMatch(['', undefined], ['bar']));
+	t.false(matcher.isMatch(['', undefined, ''], ['bar']));
+	t.false(matcher.isMatch([undefined, '', undefined], ['bar']));
+	t.false(matcher.isMatch(['', ''], ['bar']));
+	t.false(matcher.isMatch([''], ['bar']));
+	t.false(matcher.isMatch('', ['bar']));
+	t.false(matcher.isMatch([], ['bar']));
+	t.false(matcher.isMatch([undefined], ['bar']));
+	t.false(matcher.isMatch(undefined, ['bar']));
+
+	t.deepEqual(matcher([''], ['bar', '']), ['']);
+	t.deepEqual(matcher([''], ['', 'bar']), ['']);
+	t.deepEqual(matcher([''], [undefined, '']), ['']);
+	t.deepEqual(matcher([''], ['', undefined]), ['']);
+	t.deepEqual(matcher([''], ['', '']), ['']);
+
+	t.deepEqual(matcher(['phoenix', ''], ['']), ['']);
+	t.deepEqual(matcher(['', 'phoenix'], ['']), ['']);
+	t.deepEqual(matcher([undefined, ''], ['']), ['']);
+	t.deepEqual(matcher(['', undefined], ['']), ['']);
+	t.deepEqual(matcher(['', ''], ['']), ['', '']);
+
+	t.deepEqual(matcher([''], ['']), ['']);
+	t.deepEqual(matcher([''], ['*']), ['']);
+
+	t.deepEqual(matcher([undefined], ['bar', undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined, 'bar']), []);
+	t.deepEqual(matcher([undefined], ['', undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined, '']), []);
+	t.deepEqual(matcher([undefined], [undefined, undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined], undefined), []);
+
+	t.deepEqual(matcher(['phoenix', undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined, 'phoenix'], [undefined]), []);
+	t.deepEqual(matcher(['', undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined, ''], [undefined]), []);
+	t.deepEqual(matcher([undefined, undefined], [undefined]), []);
+	t.deepEqual(matcher([undefined], [undefined]), []);
+	t.deepEqual(matcher(undefined, [undefined]), []);
+
+	t.deepEqual(matcher([], []), []);
+	t.deepEqual(matcher([], ['*']), []);
+
+	t.true(matcher.isMatch([''], [undefined, '']));
+	t.true(matcher.isMatch([''], ['', undefined]));
+	t.true(matcher.isMatch([''], ['', '']));
+
+	t.true(matcher.isMatch(['phoenix', ''], ['']));
+	t.true(matcher.isMatch(['', 'phoenix'], ['']));
+	t.true(matcher.isMatch([undefined, ''], ['']));
+	t.true(matcher.isMatch(['', undefined], ['']));
+	t.true(matcher.isMatch(['', ''], ['']));
+
+	t.true(matcher.isMatch([''], ['']));
+	t.true(matcher.isMatch([''], ['*']));
+
+	t.false(matcher.isMatch([undefined], ['bar', undefined]));
+	t.false(matcher.isMatch([undefined], [undefined, 'bar']));
+	t.false(matcher.isMatch([undefined], ['', undefined]));
+	t.false(matcher.isMatch([undefined], [undefined, '']));
+	t.false(matcher.isMatch([undefined], [undefined, undefined]));
+	t.false(matcher.isMatch([undefined], [undefined]));
+	t.false(matcher.isMatch([undefined], undefined));
+
+	t.false(matcher.isMatch(['phoenix', undefined], [undefined]));
+	t.false(matcher.isMatch([undefined, 'phoenix'], [undefined]));
+	t.false(matcher.isMatch(['', undefined], [undefined]));
+	t.false(matcher.isMatch([undefined, ''], [undefined]));
+	t.false(matcher.isMatch([undefined, undefined], [undefined]));
+	t.false(matcher.isMatch([undefined], [undefined]));
+	t.false(matcher.isMatch(undefined, [undefined]));
+
+	t.false(matcher.isMatch([], []));
+	t.false(matcher.isMatch([], ['*']));
+
+	t.throws(() => {
+		matcher(['phoenix'], [0]);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], [null]);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], [false]);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], 0);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], null);
+	});
+
+	t.throws(() => {
+		matcher(['phoenix'], false);
+	});
+
+	t.throws(() => {
+		matcher([0], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher([null], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher([false], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher(0, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher(null, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher(false, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], [0]);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], [null]);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], [false]);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], 0);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], null);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(['phoenix'], false);
+	});
+
+	t.throws(() => {
+		matcher.isMatch([0], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch([null], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch([false], ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(0, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(null, ['bar']);
+	});
+
+	t.throws(() => {
+		matcher.isMatch(false, ['bar']);
+	});
 });
 
-test('matcher.isEqual ignores the \'allPatterns\' option', t => {
-	t.true(matcher.isMatch(['a1', 'c'], ['c'], {allPatterns: true}));
-	t.false(matcher.isMatch(['a1', 'c'], ['c1'], {allPatterns: true}));
-	t.true(matcher.isMatch(['a1', 'c'], ['c']));
-	t.false(matcher.isMatch(['a1', 'c'], ['c1']));
+test('matcher() negated pattern placement', t => {
+	t.deepEqual(matcher(['foo', 'bar'], ['fo*', '!bar', 'ba*']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fo*', 'ba*']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'fu']), []);
+});
+
+test('matcher.isMatch() negated pattern placement', t => {
+	t.true(matcher.isMatch(['foo', 'bar'], ['fo*', '*oo', '!bar']));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar', 'fo*', '*oo']));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar']));
 });
