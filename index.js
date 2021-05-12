@@ -42,7 +42,7 @@ function makeRegexp(pattern, options) {
 		return regexpCache.get(cacheKey);
 	}
 
-	const negated = pattern[0] === '!';
+	const negated = pattern[0] === '!' ? 1 : 0;
 
 	if (negated) {
 		pattern = pattern.slice(1);
@@ -67,15 +67,19 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
+	const {allPatterns} = options || {};
+	const didFit = new Uint8Array(patterns.length);
 	const result = [];
 
 	for (const input of inputs) {
 		let matches;
-		//	String is included only if it matchers at least one non-negated pattern supplied.
+		//	String is included only if it matches at least one non-negated pattern supplied.
+		//  NB: the `allPatterns` option requires every non-negated pattern to be matched once.
 		//	Matching a negated pattern excludes the string.
 
-		for (const pattern of patterns) {
+		for (let i = 0, pattern; (pattern = patterns[i]) !== undefined; i += 1) {
 			if (pattern.test(input)) {
+				didFit[i] = 1;
 				matches = !pattern.negated;
 
 				if (!matches) {
@@ -87,13 +91,13 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 		if (matches || (matches === undefined && !patterns.some(pattern => !pattern.negated))) {
 			result.push(input);
 
-			if (firstMatchOnly) {
+			if (firstMatchOnly && !allPatterns) {
 				break;
 			}
 		}
 	}
 
-	return result;
+	return (!allPatterns || didFit.every((v, i) => v ^ patterns[i].negated)) ? result : [];
 };
 
 module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);

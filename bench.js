@@ -40,8 +40,8 @@ suite('matcher.isMatch() - fixture', () => {
 	bench('test', () => matcher.isMatch(fixture, '*bar*'));
 });
 
-suite('matcher({every}) - fixture', () => {
-	const o = {every: true};
+suite('matcher({allPatterns}) - fixture', () => {
+	const o = {allPatterns: true};
 	bench('multiple patterns', () => matcher(fixture.split(' '), ['*bar', '!foo', '!*oo'], o));
 	bench('zero or more chars', () => matcher(fixture.split(' '), ['*foo'], o));
 	bench('negation', () => matcher(fixture.split(' '), ['!foo'], o));

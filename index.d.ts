@@ -1,9 +1,9 @@
 declare namespace matcher {
 	interface Options {
 		/**
-		Requires every matcher() pattern to have at least one positive match.
+		Requires any negated pattern to never match and any normal pattern to match at once. Otherwise, it will be a no-match condition.
 
-		This option has no effect on isMatch().
+		This option may slow down the `matcher.isMatch` with long inputs.
 
 		@default false
 		*/
@@ -100,6 +100,12 @@ declare const matcher: {
 
 	matcher(['foo', 'bar', 'moo'], ['!*oo']);
 	//=> ['bar']
+
+	matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
+	//=> ['foo', 'for', 'bar']
+
+	matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
+	//=> []
 
 	matcher('moo', ['']);
 	//=> []

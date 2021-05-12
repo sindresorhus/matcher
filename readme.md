@@ -21,6 +21,12 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
+matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
+//=> ['foo', 'for', 'bar']
+
+matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
+//=> []
+
 matcher('moo', ['']);
 //=> []
 
@@ -104,6 +110,15 @@ String or array of strings to match.
 #### options
 
 Type: `object`
+
+##### allPatterns
+
+Type: `boolean`\
+Default: `false`
+
+Requires any negated pattern to never match and any normal pattern to match at once. Otherwise, it will be a no-match condition.
+
+This option may slow down the `matcher.isMatch` with long inputs.
 
 ##### caseSensitive
 

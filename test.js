@@ -286,3 +286,20 @@ test('matcher.isMatch() negated pattern placement', t => {
 	t.true(matcher.isMatch(['foo', 'bar'], ['!bar', 'fo*', '*oo']));
 	t.true(matcher.isMatch(['foo', 'bar'], ['!bar']));
 });
+
+test('matcher() with allPatterns option', t => {
+	const flags = {allPatterns: true};
+	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', 'b*'], flags), ['foo', 'bar', 'for']);
+	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', 'x*'], flags), []);
+	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!b*'], flags), []);
+	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!x*'], flags), ['foo', 'for']);
+});
+
+test('matcher.isMatch() with allPatterns option', t => {
+	const flags = {allPatterns: true};
+	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', 'b*'], flags));
+	t.false(matcher.isMatch(['foo', 'bar', 'for'], ['f*', 'x*'], flags));
+	t.false(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!b*'], flags));
+	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!x*'], flags));
+	t.false(matcher.isMatch(['foo', 'bar'], ['!bar'], flags));
+});
