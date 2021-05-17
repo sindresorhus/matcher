@@ -41,9 +41,9 @@ suite('matcher.isMatch() - fixture', () => {
 });
 
 suite('matcher({allPatterns}) - fixture', () => {
-	const o = {allPatterns: true};
-	bench('multiple patterns', () => matcher(fixture.split(' '), ['*bar', '!foo', '!*oo'], o));
-	bench('zero or more chars', () => matcher(fixture.split(' '), ['*foo'], o));
-	bench('negation', () => matcher(fixture.split(' '), ['!foo'], o));
-	bench('negation zero or more', () => matcher(fixture.split(' '), ['!*foo'], o));
+	const options = {allPatterns: true};
+	bench('multiple patterns', () => matcher(fixture.split(' '), ['*bar', '!foo', '!*oo'], options));
+	bench('zero or more chars', () => matcher(fixture.split(' '), ['*foo'], options));
+	bench('negation', () => matcher(fixture.split(' '), ['!foo'], options));
+	bench('negation zero or more', () => matcher(fixture.split(' '), ['!*foo'], options));
 });
