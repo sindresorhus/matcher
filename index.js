@@ -77,9 +77,9 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 		//  Note: the `allPatterns` option requires every non-negated pattern to be matched once.
 		//	Matching a negated pattern excludes the string.
 
-		for (let i = 0, pattern; (pattern = patterns[i]) !== undefined; i += 1) {
+		for (const [index, pattern] of patterns.entries()) {
 			if (pattern.test(input)) {
-				didFit[i] = 1;
+				didFit[index] = 1;
 				matches = !pattern.negated;
 
 				if (!matches) {
