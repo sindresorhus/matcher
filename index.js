@@ -42,7 +42,7 @@ function makeRegexp(pattern, options) {
 		return regexpCache.get(cacheKey);
 	}
 
-	const negated = pattern[0] === '!' ? 1 : 0;
+	const negated = pattern[0] === '!';
 
 	if (negated) {
 		pattern = pattern.slice(1);
@@ -97,7 +97,8 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 		}
 	}
 
-	return (!allPatterns || didFit.every((v, i) => v ^ patterns[i].negated)) ? result : [];
+	return (!allPatterns ||
+		didFit.every((flag, i) => flag ^ (patterns[i].negated & 1))) ? result : [];
 };
 
 module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
