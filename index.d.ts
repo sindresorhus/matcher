@@ -3,7 +3,7 @@ declare namespace matcher {
 		/**
 		Requires any negated pattern to never match and any normal pattern to match at once. Otherwise, it will be a no-match condition.
 
-		This option may slow down the `matcher.isMatch` with long inputs.
+		This option may slow down `matcher.isMatch` with long inputs.
 
 		@default false
 		*/

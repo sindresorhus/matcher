@@ -74,7 +74,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	for (const input of inputs) {
 		let matches;
 		//	String is included only if it matches at least one non-negated pattern supplied.
-		//  NB: the `allPatterns` option requires every non-negated pattern to be matched once.
+		//  Note: the `allPatterns` option requires every non-negated pattern to be matched once.
 		//	Matching a negated pattern excludes the string.
 
 		for (let i = 0, pattern; (pattern = patterns[i]) !== undefined; i += 1) {
