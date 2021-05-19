@@ -79,7 +79,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 
 		for (const [index, pattern] of patterns.entries()) {
 			if (pattern.test(input)) {
-				didFit[index] = 1;
+				didFit[index] = true;
 				matches = !pattern.negated;
 
 				if (!matches) {
