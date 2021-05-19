@@ -1,6 +1,14 @@
 declare namespace matcher {
 	interface Options {
 		/**
+		Requires any negated pattern to never match and any normal pattern to match at once. Otherwise, it will be a no-match condition.
+
+		This option may slow down `matcher.isMatch` with long inputs.
+
+		@default false
+		*/
+		readonly allPatterns?: boolean;
+		/**
 		Treat uppercase and lowercase characters as being the same.
 
 		Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
@@ -92,6 +100,12 @@ declare const matcher: {
 
 	matcher(['foo', 'bar', 'moo'], ['!*oo']);
 	//=> ['bar']
+
+	matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
+	//=> ['foo', 'for', 'bar']
+
+	matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
+	//=> []
 
 	matcher('moo', ['']);
 	//=> []
