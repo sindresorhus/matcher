@@ -68,7 +68,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const {allPatterns} = options || {};
-	const didFit = new Uint8Array(patterns.length);
+	const didFit = [...patterns].fill(false);
 	const result = [];
 
 	for (const input of inputs) {
@@ -98,7 +98,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	}
 
 	return (!allPatterns ||
-		didFit.every((flag, i) => flag ^ (patterns[i].negated & 1))) ? result : [];
+		didFit.every((flag, index) => flag ^ patterns[index].negated)) ? result : [];
 };
 
 module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
