@@ -1,7 +1,7 @@
 declare namespace matcher {
 	interface Options {
 		/**
-		Requires any negated pattern to never match and any normal pattern to match at once. Otherwise, it will be a no-match condition.
+		Requires all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
 
 		This option may slow down `matcher.isMatch` with long inputs.
 

@@ -116,9 +116,15 @@ Type: `object`
 Type: `boolean`\
 Default: `false`
 
-Requires any negated pattern to never match and any normal pattern to match at once. Otherwise, it will be a no-match condition.
+Requires all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
 
 This option may slow down `matcher.isMatch` with long inputs.
+
+**Example:** find text strings containing both "Tesla" and "supremacy" in arbitrary order, but not "hoax".
+```javascript
+  const inputStrings = readSomeInputSource().split('\n')
+  const foundStrings = matcher(inputStrings, ['tesla', 'supremacy', '!hoax'], {allPatterns: true})
+```
 
 ##### caseSensitive
 
