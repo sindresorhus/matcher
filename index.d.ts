@@ -3,9 +3,14 @@ declare namespace matcher {
 		/**
 		Requires all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
 
-		This option may slow down `matcher.isMatch` with long inputs.
-
 		@default false
+
+		@example
+		```
+		//	Find text strings containing both "tiger" and "supremacy" in arbitrary order, but not "hoax".
+		const inputStrings = readSomeInputSource().split('\n')
+		const foundStrings = matcher(inputStrings, ['tiger', 'supremacy', '!hoax'], {allPatterns: true})
+		```
 		*/
 		readonly allPatterns?: boolean;
 		/**
