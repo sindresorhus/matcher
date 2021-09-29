@@ -128,10 +128,10 @@ Default: `false`
 Require all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
 
 ```js
-//	Find text strings containing both "edge" and "tiger" in arbitrary order, but not "hoax".
-const demo = (strings) => matcher(strings, ['edge', 'tiger', '!hoax'], {allPatterns: true});
+//  Find text strings containing both "edge" and "tiger" in arbitrary order, but not "stunt".
+const demo = (strings) => matcher(strings, ['*edge*', '*tiger*', '!*stunt*'], {allPatterns: true});
 
-demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge might be a hoax']);
+demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt']);
 //=> ['tiger has edge over hyenas']
 ```
 

@@ -289,17 +289,28 @@ test('matcher.isMatch() negated pattern placement', t => {
 
 test('matcher() with allPatterns option', t => {
 	const flags = {allPatterns: true};
-	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', 'b*'], flags), ['foo', 'bar', 'for']);
+
+	t.deepEqual(matcher('foo', '!x*', flags), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', 'b*'], flags), []);
 	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', 'x*'], flags), []);
-	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!b*'], flags), []);
+	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!b*'], flags), ['foo', 'for']);
 	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!x*'], flags), ['foo', 'for']);
+
+	t.deepEqual(matcher(
+		['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
+		['*edge*', '*tiger*', '!*stunt*'], flags), ['tiger has edge over hyenas']);
 });
 
 test('matcher.isMatch() with allPatterns option', t => {
 	const flags = {allPatterns: true};
-	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', 'b*'], flags));
+
+	t.true(matcher.isMatch('foo', '!x*', flags));
+	t.false(matcher.isMatch(['foo', 'bar', 'for'], ['f*', 'b*'], flags));
 	t.false(matcher.isMatch(['foo', 'bar', 'for'], ['f*', 'x*'], flags));
-	t.false(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!b*'], flags));
+	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!b*'], flags));
 	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!x*'], flags));
-	t.false(matcher.isMatch(['foo', 'bar'], ['!bar'], flags));
+	t.true(matcher.isMatch(['foo', 'bar'], ['!bar'], flags));
+	t.true(matcher.isMatch(
+		['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
+		['*edge*', '*tiger*', '!*stunt*'], flags));
 });

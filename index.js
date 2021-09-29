@@ -68,14 +68,14 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
 	const {allPatterns} = options || {};
-	const didFit = [...patterns].fill(false);
 	const result = [];
 
 	for (const input of inputs) {
-		let matches;
 		//	String is included only if it matches at least one non-negated pattern supplied.
 		//  Note: the `allPatterns` option requires every non-negated pattern to be matched once.
 		//	Matching a negated pattern excludes the string.
+		let matches;
+		const didFit = [...patterns].fill(false);
 
 		for (const [index, pattern] of patterns.entries()) {
 			if (pattern.test(input)) {
@@ -88,17 +88,18 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 			}
 		}
 
-		if (matches || (matches === undefined && !patterns.some(pattern => !pattern.negated))) {
+		if (!(matches === false ||
+			(matches === undefined && patterns.some(pattern => !pattern.negated)) ||
+			(allPatterns && didFit.some((flag, index) => !flag && !patterns[index].negated))
+		)) {
 			result.push(input);
 
-			if (firstMatchOnly && !allPatterns) {
+			if (firstMatchOnly) {
 				break;
 			}
 		}
 	}
-
-	return (!allPatterns ||
-		didFit.every((flag, index) => flag ^ patterns[index].negated)) ? result : [];
+	return result;
 };
 
 module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
