@@ -1,19 +1,6 @@
 declare namespace matcher {
 	interface Options {
 		/**
-		Requires all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
-
-		@default false
-
-		@example
-		```
-		//	Find text strings containing both "tiger" and "supremacy" in arbitrary order, but not "hoax".
-		const inputStrings = readSomeInputSource().split('\n')
-		const foundStrings = matcher(inputStrings, ['tiger', 'supremacy', '!hoax'], {allPatterns: true})
-		```
-		*/
-		readonly allPatterns?: boolean;
-		/**
 		Treat uppercase and lowercase characters as being the same.
 
 		Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
@@ -21,6 +8,21 @@ declare namespace matcher {
 		@default false
 		*/
 		readonly caseSensitive?: boolean;
+		/**
+		Require all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
+
+		@default false
+
+		@example
+		```
+		//	Find text strings containing both "edge" and "tiger" in arbitrary order, but not "hoax".
+		const demo = (strings) => matcher(strings, ['edge', 'tiger', '!hoax'], {allPatterns: true});
+
+		demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge might be a hoax']);
+		//=> ['tiger has edge over hyenas']
+		```
+		*/
+		readonly allPatterns?: boolean;
 	}
 }
 
