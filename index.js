@@ -90,7 +90,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 
 		if (!(matches === false ||
 			(matches === undefined && patterns.some(pattern => !pattern.negated)) ||
-			(allPatterns && didFit.some((flag, index) => !flag && !patterns[index].negated))
+			(allPatterns && didFit.some((yes, index) => !yes && !patterns[index].negated))
 		)) {
 			result.push(input);
 
@@ -99,6 +99,7 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 			}
 		}
 	}
+
 	return result;
 };
 
