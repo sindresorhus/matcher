@@ -296,9 +296,14 @@ test('matcher() with allPatterns option', t => {
 	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!b*'], flags), ['foo', 'for']);
 	t.deepEqual(matcher(['foo', 'bar', 'for'], ['f*', '!x*'], flags), ['foo', 'for']);
 
-	t.deepEqual(matcher(
-		['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
-		['*edge*', '*tiger*', '!*stunt*'], flags), ['tiger has edge over hyenas']);
+	t.deepEqual(
+		matcher(
+			['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
+			['*edge*', '*tiger*', '!*stunt*'],
+			flags
+		),
+		['tiger has edge over hyenas']
+	);
 });
 
 test('matcher.isMatch() with allPatterns option', t => {
@@ -310,7 +315,11 @@ test('matcher.isMatch() with allPatterns option', t => {
 	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!b*'], flags));
 	t.true(matcher.isMatch(['foo', 'bar', 'for'], ['f*', '!x*'], flags));
 	t.true(matcher.isMatch(['foo', 'bar'], ['!bar'], flags));
-	t.true(matcher.isMatch(
-		['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
-		['*edge*', '*tiger*', '!*stunt*'], flags));
+	t.true(
+		matcher.isMatch(
+			['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
+			['*edge*', '*tiger*', '!*stunt*'],
+			flags
+		)
+	);
 });
