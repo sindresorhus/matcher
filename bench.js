@@ -39,3 +39,11 @@ suite('matcher() - fixture', () => {
 suite('matcher.isMatch() - fixture', () => {
 	bench('test', () => matcher.isMatch(fixture, '*bar*'));
 });
+
+suite('matcher({allPatterns}) - fixture', () => {
+	const options = {allPatterns: true};
+	bench('multiple patterns', () => matcher(fixture.split(' '), ['*bar', '!foo', '!*oo'], options));
+	bench('zero or more chars', () => matcher(fixture.split(' '), ['*foo'], options));
+	bench('negation', () => matcher(fixture.split(' '), ['!foo'], options));
+	bench('negation zero or more', () => matcher(fixture.split(' '), ['!*foo'], options));
+});

@@ -21,6 +21,12 @@ matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
 
+matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
+//=> ['foo', 'for', 'bar']
+
+matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
+//=> []
+
 matcher('moo', ['']);
 //=> []
 
@@ -113,6 +119,21 @@ Default: `false`
 Treat uppercase and lowercase characters as being the same.
 
 Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
+
+##### allPatterns
+
+Type: `boolean`\
+Default: `false`
+
+Require all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
+
+```js
+// Find text strings containing both "edge" and "tiger" in arbitrary order, but not "stunt".
+const demo = (strings) => matcher(strings, ['*edge*', '*tiger*', '!*stunt*'], {allPatterns: true});
+
+demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt']);
+//=> ['tiger has edge over hyenas']
+```
 
 #### patterns
 
