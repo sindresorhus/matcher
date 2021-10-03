@@ -15,7 +15,7 @@ declare namespace matcher {
 
 		@example
 		```
-		//	Find text strings containing both "edge" and "tiger" in arbitrary order, but not "stunt".
+		// Find text strings containing both "edge" and "tiger" in arbitrary order, but not "stunt".
 		const demo = (strings) => matcher(strings, ['*edge*', '*tiger*', '!*stunt*'], {allPatterns: true});
 
 		demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt']);
