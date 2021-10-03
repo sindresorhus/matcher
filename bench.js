@@ -1,7 +1,6 @@
-'use strict';
 /* global bench, suite */
-const fs = require('fs');
-const matcher = require('.');
+import fs from 'node:fs';
+import {matcher, isMatch} from './index.js';
 
 const fixture = fs.readFileSync('fixture.txt', 'utf8');
 const paragraph = fixture.split('\n')[0];
@@ -14,8 +13,8 @@ suite('matcher() - sentence', () => {
 	bench('negation zero or more', () => matcher(sentence.split(' '), ['!*foo']));
 });
 
-suite('matcher.isMatch() - sentence', () => {
-	bench('sentence', () => matcher.isMatch(sentence, '*bar*'));
+suite('isMatch() - sentence', () => {
+	bench('sentence', () => isMatch(sentence, '*bar*'));
 });
 
 suite('matcher() - paragraph', () => {
@@ -25,8 +24,8 @@ suite('matcher() - paragraph', () => {
 	bench('negation zero or more', () => matcher(paragraph.split(' '), ['!*foo']));
 });
 
-suite('matcher.isMatch() - paragraph', () => {
-	bench('test', () => matcher.isMatch(paragraph, '*bar*'));
+suite('isMatch() - paragraph', () => {
+	bench('test', () => isMatch(paragraph, '*bar*'));
 });
 
 suite('matcher() - fixture', () => {
@@ -36,8 +35,8 @@ suite('matcher() - fixture', () => {
 	bench('negation zero or more', () => matcher(fixture.split(' '), ['!*foo']));
 });
 
-suite('matcher.isMatch() - fixture', () => {
-	bench('test', () => matcher.isMatch(fixture, '*bar*'));
+suite('isMatch() - fixture', () => {
+	bench('test', () => isMatch(fixture, '*bar*'));
 });
 
 suite('matcher({allPatterns}) - fixture', () => {

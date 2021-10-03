@@ -10,8 +10,10 @@
 		"email": "sindresorhus@gmail.com",
 		"url": "https://sindresorhus.com"
 	},
+	"type": "module",
+	"exports": "./index.js",
 	"engines": {
-		"node": ">=10"
+		"node": "^12.20.0 || ^14.13.1 || >=16.0.0"
 	},
 	"scripts": {
 		"test": "xo && ava && tsd",
@@ -39,12 +41,12 @@
 		"minimatch"
 	],
 	"dependencies": {
-		"escape-string-regexp": "^4.0.0"
+		"escape-string-regexp": "^5.0.0"
 	},
 	"devDependencies": {
-		"ava": "^2.4.0",
+		"ava": "^3.15.0",
 		"matcha": "^0.7.0",
-		"tsd": "^0.14.0",
-		"xo": "^0.38.2"
+		"tsd": "^0.17.0",
+		"xo": "^0.45.0"
 	}
 }

@@ -6,26 +6,20 @@ Useful when you want to accept loose string input and regexes/globs are too conv
 
 ## Install
 
-```
-$ npm install matcher
+```sh
+npm install matcher
 ```
 
 ## Usage
 
 ```js
-const matcher = require('matcher');
+import {matcher, isMatch} from 'matcher';
 
 matcher(['foo', 'bar', 'moo'], ['*oo', '!foo']);
 //=> ['moo']
 
 matcher(['foo', 'bar', 'moo'], ['!*oo']);
 //=> ['bar']
-
-matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
-//=> ['foo', 'for', 'bar']
-
-matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
-//=> []
 
 matcher('moo', ['']);
 //=> []
@@ -36,52 +30,43 @@ matcher('moo', []);
 matcher([''], ['']);
 //=> ['']
 
-matcher.isMatch('unicorn', 'uni*');
+isMatch('unicorn', 'uni*');
 //=> true
 
-matcher.isMatch('unicorn', '*corn');
+isMatch('unicorn', '*corn');
 //=> true
 
-matcher.isMatch('unicorn', 'un*rn');
+isMatch('unicorn', 'un*rn');
 //=> true
 
-matcher.isMatch('rainbow', '!unicorn');
+isMatch('rainbow', '!unicorn');
 //=> true
 
-matcher.isMatch('foo bar baz', 'foo b* b*');
+isMatch('foo bar baz', 'foo b* b*');
 //=> true
 
-matcher.isMatch('unicorn', 'uni\\*');
+isMatch('unicorn', 'uni\\*');
 //=> false
 
-matcher.isMatch('UNICORN', 'UNI*', {caseSensitive: true});
+isMatch(['foo', 'bar'], 'f*');
 //=> true
 
-matcher.isMatch('UNICORN', 'unicorn', {caseSensitive: true});
-//=> false
-
-matcher.isMatch(['foo', 'bar'], 'f*');
+isMatch(['foo', 'bar'], ['a*', 'b*']);
 //=> true
 
-matcher.isMatch(['foo', 'bar'], ['a*', 'b*']);
-//=> true
-
-matcher.isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
+isMatch('unicorn', ['']);
 //=> false
 
-matcher.isMatch('unicorn', ['']);
+isMatch('unicorn', []);
 //=> false
 
-matcher.isMatch('unicorn', []);
+isMatch([], 'bar');
 //=> false
 
-matcher.isMatch([], 'bar');
+isMatch([], []);
 //=> false
 
-matcher.isMatch([], []);
-//=> false
-
-matcher.isMatch('', '');
+isMatch('', '');
 //=> true
 ```
 
@@ -95,7 +80,7 @@ Accepts a string or an array of strings for both `inputs` and `patterns`.
 
 Returns an array of `inputs` filtered based on the `patterns`.
 
-### matcher.isMatch(inputs, patterns, options?)
+### isMatch(inputs, patterns, options?)
 
 Accepts a string or an array of strings for both `inputs` and `patterns`.
 
@@ -105,7 +90,7 @@ Returns a `boolean` of whether any of given `inputs` matches all the `patterns`.
 
 Type: `string | string[]`
 
-String or array of strings to match.
+The string or array of strings to match.
 
 #### options
 
@@ -120,6 +105,19 @@ Treat uppercase and lowercase characters as being the same.
 
 Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
+```js
+import {isMatch} from 'matcher';
+
+isMatch('UNICORN', 'UNI*', {caseSensitive: true});
+//=> true
+
+isMatch('UNICORN', 'unicorn', {caseSensitive: true});
+//=> false
+
+isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
+//=> false
+```
+
 ##### allPatterns
 
 Type: `boolean`\
@@ -128,11 +126,23 @@ Default: `false`
 Require all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
 
 ```js
+import {matcher} from 'matcher';
+
 // Find text strings containing both "edge" and "tiger" in arbitrary order, but not "stunt".
 const demo = (strings) => matcher(strings, ['*edge*', '*tiger*', '!*stunt*'], {allPatterns: true});
 
 demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt']);
 //=> ['tiger has edge over hyenas']
+```
+
+```js
+import {matcher} from 'matcher';
+
+matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
+//=> ['foo', 'for', 'bar']
+
+matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
+//=> []
 ```
 
 #### patterns
@@ -147,8 +157,8 @@ An input string will be omitted, if it does not match any non-negated patterns p
 
 ## Benchmark
 
-```
-$ npm run bench
+```sh
+npm run bench
 ```
 
 ## Related

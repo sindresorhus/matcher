@@ -1,9 +1,8 @@
-'use strict';
-const escapeStringRegexp = require('escape-string-regexp');
+import escapeStringRegexp from 'escape-string-regexp';
 
 const regexpCache = new Map();
 
-function sanitizeArray(input, inputName) {
+const sanitizeArray = (input, inputName) => {
 	if (!Array.isArray(input)) {
 		switch (typeof input) {
 			case 'string':
@@ -28,12 +27,12 @@ function sanitizeArray(input, inputName) {
 
 		return true;
 	});
-}
+};
 
-function makeRegexp(pattern, options) {
+const makeRegexp = (pattern, options) => {
 	options = {
 		caseSensitive: false,
-		...options
+		...options,
 	};
 
 	const cacheKey = pattern + JSON.stringify(options);
@@ -55,9 +54,9 @@ function makeRegexp(pattern, options) {
 	regexpCache.set(cacheKey, regexp);
 
 	return regexp;
-}
+};
 
-const matcher = (inputs, patterns, options, firstMatchOnly) => {
+const baseMatcher = (inputs, patterns, options, firstMatchOnly) => {
 	inputs = sanitizeArray(inputs, 'inputs');
 	patterns = sanitizeArray(patterns, 'patterns');
 
@@ -71,9 +70,9 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	const result = [];
 
 	for (const input of inputs) {
-		//	String is included only if it matches at least one non-negated pattern supplied.
-		//  Note: the `allPatterns` option requires every non-negated pattern to be matched once.
-		//	Matching a negated pattern excludes the string.
+		// String is included only if it matches at least one non-negated pattern supplied.
+		// Note: the `allPatterns` option requires every non-negated pattern to be matched once.
+		// Matching a negated pattern excludes the string.
 		let matches;
 		const didFit = [...patterns].fill(false);
 
@@ -88,10 +87,13 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 			}
 		}
 
-		if (!(matches === false ||
-			(matches === undefined && patterns.some(pattern => !pattern.negated)) ||
-			(allPatterns && didFit.some((yes, index) => !yes && !patterns[index].negated))
-		)) {
+		if (
+			!(
+				matches === false
+				|| (matches === undefined && patterns.some(pattern => !pattern.negated))
+				|| (allPatterns && didFit.some((yes, index) => !yes && !patterns[index].negated))
+			)
+		) {
 			result.push(input);
 
 			if (firstMatchOnly) {
@@ -103,10 +105,10 @@ const matcher = (inputs, patterns, options, firstMatchOnly) => {
 	return result;
 };
 
-module.exports = (inputs, patterns, options) => matcher(inputs, patterns, options, false);
+export function matcher(inputs, patterns, options) {
+	return baseMatcher(inputs, patterns, options, false);
+}
 
-module.exports.isMatch = (inputs, patterns, options) => {
-	const matching = matcher(inputs, patterns, options, true);
-
-	return matching.length > 0;
-};
+export function isMatch(inputs, patterns, options) {
+	return baseMatcher(inputs, patterns, options, true).length > 0;
+}
