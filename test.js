@@ -395,3 +395,10 @@ test('complex allPatterns scenarios with negations', t => {
 	t.true(isMatch('foo', ['!bar', '!baz'], {allPatterns: true}));
 	t.false(isMatch('bar', ['!bar', '!baz'], {allPatterns: true}));
 });
+
+test('issue #32 regression test', t => {
+	// This was a bug in v4.0.0 that returned false instead of true
+	t.true(isMatch(['foo', 'bar'], ['a*', 'b*'])); // 'bar' matches 'b*'
+	t.true(isMatch(['apple', 'zoo'], ['a*', 'b*'])); // 'Apple' matches 'a*'
+	t.false(isMatch(['foo', 'zoo'], ['a*', 'b*'])); // Neither matches
+});
