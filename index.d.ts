@@ -91,7 +91,7 @@ It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 @param inputs - The string or array of strings to match.
 @param patterns - The string or array of string patterns. Use `*` to match zero or more characters. A leading `!` negates the pattern.
-@returns A `boolean` of whether any of given `inputs` matches all the `patterns`.
+@returns A `boolean` of whether any of the given `inputs` matches at least one of the `patterns`.
 
 @example
 ```
@@ -135,6 +135,13 @@ isMatch([], []);
 
 isMatch([''], ['']);
 //=> true
+
+// With `allPatterns` option
+isMatch('foobar', ['foo*', '*bar'], {allPatterns: true});
+//=> true
+
+isMatch('foo', ['foo*', '*bar'], {allPatterns: true});
+//=> false
 ```
 */
 export function isMatch(

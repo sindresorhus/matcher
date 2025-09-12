@@ -323,3 +323,75 @@ test('isMatch() with allPatterns option', t => {
 		),
 	);
 });
+
+test('isMatch() uses OR logic by default (matches ANY pattern)', t => {
+	// Default behavior: input matches if it matches ANY of the patterns (OR logic)
+
+	// Single input, multiple patterns
+	t.true(isMatch('foo', ['f*', 'b*'])); // Matches first pattern
+	t.true(isMatch('bar', ['f*', 'b*'])); // Matches second pattern
+	t.false(isMatch('zoo', ['f*', 'b*'])); // Matches neither pattern
+
+	// Multiple inputs, multiple patterns
+	t.true(isMatch(['foo', 'bar'], ['f*', 'b*'])); // Both inputs match at least one pattern
+	t.true(isMatch(['foo', 'zoo'], ['f*', 'b*'])); // At least one input matches a pattern
+	t.false(isMatch(['zoo', 'moo'], ['f*', 'b*'])); // No input matches any pattern
+
+	// Issue #31 use case - CORS origin matching
+	const allowedOrigins = ['*.example.com', '*.dev.example.com'];
+	t.true(isMatch('https://my.example.com', allowedOrigins)); // Matches first pattern
+	t.true(isMatch('https://my.dev.example.com', allowedOrigins)); // Matches second pattern
+	t.false(isMatch('https://my.other.com', allowedOrigins)); // Matches neither pattern
+});
+
+test('isMatch() with allPatterns option uses AND logic (matches ALL patterns)', t => {
+	// With allPatterns: true, input must match ALL non-negated patterns (AND logic)
+
+	// Single input must match all patterns
+	t.true(isMatch('foobar', ['f*', '*bar'], {allPatterns: true})); // Matches both
+	t.false(isMatch('foo', ['f*', '*bar'], {allPatterns: true})); // Matches only first
+	t.false(isMatch('bar', ['f*', '*bar'], {allPatterns: true})); // Matches only second
+
+	// Multiple inputs - at least one must match all patterns
+	t.true(isMatch(['foobar', 'zoo'], ['f*', '*bar'], {allPatterns: true})); // Foobar matches both
+	t.false(isMatch(['foo', 'bar'], ['f*', '*bar'], {allPatterns: true})); // No single input matches both
+
+	// Issue #31 scenario with allPatterns would require matching both patterns
+	const allowedOrigins = ['*.example.com', '*.dev.example.com'];
+	t.false(isMatch('https://my.example.com', allowedOrigins, {allPatterns: true})); // Doesn't match both
+	t.true(isMatch('https://my.dev.example.com', allowedOrigins, {allPatterns: true})); // Actually matches both because * matches any prefix
+});
+
+test('isMatch() documentation examples with allPatterns', t => {
+	// Test the exact examples from the documentation
+	t.true(isMatch('foobar', ['foo*', '*bar'], {allPatterns: true}));
+	t.false(isMatch('foo', ['foo*', '*bar'], {allPatterns: true}));
+});
+
+test('special regex characters are escaped properly', t => {
+	// Dots should be literal, not regex wildcard
+	t.true(isMatch('a.b', 'a.b'));
+	t.false(isMatch('axb', 'a.b'));
+
+	// Other special regex chars should be literal
+	t.true(isMatch('a+b', 'a+b'));
+	t.true(isMatch('a?b', 'a?b'));
+	t.true(isMatch('a(b)', 'a(b)'));
+	t.true(isMatch('a[b]', 'a[b]'));
+	t.true(isMatch('a{b}', 'a{b}'));
+	t.true(isMatch('a^b$', 'a^b$'));
+
+	// But * should still work as wildcard
+	t.true(isMatch('axb', 'a*b'));
+});
+
+test('complex allPatterns scenarios with negations', t => {
+	// Multiple negations - all must not match
+	t.true(isMatch('abc', ['a*', '!*x', '!*y'], {allPatterns: true}));
+	t.false(isMatch('abx', ['a*', '!*x', '!*y'], {allPatterns: true}));
+	t.false(isMatch('aby', ['a*', '!*x', '!*y'], {allPatterns: true}));
+
+	// Only negations - should match if none match
+	t.true(isMatch('foo', ['!bar', '!baz'], {allPatterns: true}));
+	t.false(isMatch('bar', ['!bar', '!baz'], {allPatterns: true}));
+});

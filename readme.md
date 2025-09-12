@@ -66,8 +66,15 @@ isMatch([], 'bar');
 isMatch([], []);
 //=> false
 
-isMatch('', '');
+isMatch([''], ['']);
 //=> true
+
+// With `allPatterns` option
+isMatch('foobar', ['foo*', '*bar'], {allPatterns: true});
+//=> true
+
+isMatch('foo', ['foo*', '*bar'], {allPatterns: true});
+//=> false
 ```
 
 ## API
@@ -84,7 +91,7 @@ Returns an array of `inputs` filtered based on the `patterns`.
 
 Accepts a string or an array of strings for both `inputs` and `patterns`.
 
-Returns a `boolean` of whether any of given `inputs` matches all the `patterns`.
+Returns a `boolean` of whether any of the given `inputs` matches at least one of the `patterns`.
 
 #### inputs
 
@@ -165,15 +172,3 @@ npm run bench
 
 - [matcher-cli](https://github.com/sindresorhus/matcher-cli) - CLI for this module
 - [multimatch](https://github.com/sindresorhus/multimatch) - Extends `minimatch.match()` with support for multiple patterns
-
----
-
-<div align="center">
-	<b>
-		<a href="https://tidelift.com/subscription/pkg/npm-matcher?utm_source=npm-matcher&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
-	</b>
-	<br>
-	<sub>
-		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
-	</sub>
-</div>
