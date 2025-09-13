@@ -402,3 +402,163 @@ test('issue #32 regression test', t => {
 	t.true(isMatch(['apple', 'zoo'], ['a*', 'b*'])); // 'Apple' matches 'a*'
 	t.false(isMatch(['foo', 'zoo'], ['a*', 'b*'])); // Neither matches
 });
+
+test('escaped characters handling', t => {
+	// Escaped asterisks must stay literal (critical correctness)
+	t.false(isMatch('unicorn', 'uni\\*')); // Per README promise
+	t.true(isMatch('uni*', 'uni\\*')); // Should match literal asterisk
+	t.false(isMatch('unixcorn', 'uni\\*')); // Should not wildcard
+
+	// Escaped spaces
+	t.true(isMatch('a b', 'a\\ b')); // Should match literal space
+	t.false(isMatch('ab', 'a\\ b')); // Should require space
+	t.false(isMatch('axb', 'a\\ b')); // Should not wildcard
+
+	// Escaped backslashes
+	t.true(isMatch('test\\', 'test\\\\'));
+	t.false(isMatch('test', 'test\\\\'));
+
+	// Multiple escapes
+	t.true(isMatch('a\\*b', 'a\\\\\\*b'));
+	t.false(isMatch('axb', 'a\\\\\\*b'));
+});
+
+test('newlines with dotAll flag', t => {
+	// The README promises foo*r matches foo\nbar (critical correctness)
+	t.true(isMatch('foo\nbar', 'foo*r'));
+	t.true(isMatch('foo\nbar', 'foo*'));
+	t.true(isMatch('foo\n\nbar', 'foo*bar'));
+	t.true(isMatch('foo\r\nbar', 'foo*bar')); // Windows line endings
+});
+
+test('regex cache with different flags', t => {
+	// Test potential cache collision bug
+	t.true(isMatch('FOO', 'foo', {caseSensitive: false}));
+	t.false(isMatch('FOO', 'foo', {caseSensitive: true}));
+	// If cache is broken, second call might return wrong result
+	t.false(isMatch('FOO', 'foo', {caseSensitive: true}));
+	t.true(isMatch('FOO', 'foo', {caseSensitive: false}));
+});
+
+test('unicode case handling', t => {
+	// Standard JS case insensitive behavior - Turkish İ lowercases to i̇, not i
+	t.false(isMatch('İstanbul', 'i*', {caseSensitive: false})); // İ ≠ i in Unicode
+	t.false(isMatch('İstanbul', 'i*', {caseSensitive: true}));
+
+	// But ASCII case insensitivity works as expected
+	t.true(isMatch('Istanbul', 'i*', {caseSensitive: false}));
+	t.false(isMatch('Istanbul', 'i*', {caseSensitive: true}));
+});
+
+test('allPatterns edge cases', t => {
+	// Only negations - should match if none match
+	t.true(isMatch('foo', ['!bar', '!baz'], {allPatterns: true}));
+	t.false(isMatch('bar', ['!bar', '!baz'], {allPatterns: true}));
+
+	// Mixed order should work the same
+	t.true(isMatch('foo', ['!bar', 'f*'], {allPatterns: true}));
+	t.true(isMatch('foo', ['f*', '!bar'], {allPatterns: true}));
+	t.false(isMatch('foobar', ['f*', '!*bar'], {allPatterns: true}));
+
+	// No patterns at all
+	t.false(isMatch('test', [], {allPatterns: true}));
+});
+
+test('multiple escaped stars in one pattern', t => {
+	t.true(isMatch('a*b*c', 'a\\*b\\*c'));
+	t.false(isMatch('axbxc', 'a\\*b\\*c'));
+	t.true(isMatch('a*b*c*d', 'a\\*b\\*c\\*d'));
+});
+
+test('mixed escaped and unescaped wildcards', t => {
+	t.true(isMatch('a*bcd', 'a\\*b*')); // Literal * then wildcard
+	t.true(isMatch('a*bxd', 'a\\*b*')); // Literal * then wildcard matching x
+	t.false(isMatch('axbcd', 'a\\*b*')); // Missing literal *
+	t.true(isMatch('test*end', '*\\*end')); // Wildcard then literal *
+	t.false(isMatch('testend', '*\\*end')); // Missing literal *
+});
+
+test('consecutive wildcards optimization', t => {
+	// Multiple * should work like single *
+	t.true(isMatch('test', '**'));
+	t.true(isMatch('test', '*****'));
+	t.true(isMatch('a/b/c', '***'));
+	t.deepEqual(matcher(['foo', 'bar'], '**'), ['foo', 'bar']);
+});
+
+test('empty string with wildcards', t => {
+	t.true(isMatch('', '*'));
+	t.false(isMatch('', '!*'));
+	t.true(isMatch('', ''));
+	t.false(isMatch('', 'a*')); // Requires 'a' at start
+	t.false(isMatch('', '*a*')); // Requires 'a' somewhere
+	t.true(isMatch('', '**')); // Multiple wildcards still match empty
+});
+
+test('pattern ending with escape character', t => {
+	t.false(isMatch('test', 'test\\'));
+	t.true(isMatch('test\\', 'test\\\\'));
+	t.false(isMatch('test\\x', 'test\\'));
+});
+
+test('real-world file matching scenarios', t => {
+	// Common gitignore patterns
+	t.true(isMatch('node_modules/foo', 'node_modules/*'));
+	t.true(isMatch('.env.local', '.env*'));
+	t.false(isMatch('src/.env', '.env*'));
+
+	// File extensions
+	t.true(isMatch('test.js', '*.js'));
+	t.false(isMatch('test.jsx', '*.js'));
+	t.true(isMatch('test.test.js', '*.test.js'));
+	t.true(isMatch('component.test.tsx', '*.test.*'));
+});
+
+test('performance with many patterns', t => {
+	const manyPatterns = Array.from({length: 100}, (_, i) => `pattern${i}*`);
+	manyPatterns.push('test*'); // Add one that matches
+
+	t.true(isMatch('test123', manyPatterns));
+	t.false(isMatch('nomatch', manyPatterns));
+
+	// With allPatterns - should be false as not all patterns match
+	t.false(isMatch('test123', manyPatterns, {allPatterns: true}));
+});
+
+test('whitespace in patterns', t => {
+	t.true(isMatch('hello world', 'hello world'));
+	t.true(isMatch('hello world', 'hello*world'));
+	t.true(isMatch('hello   world', 'hello*world'));
+	t.false(isMatch('helloworld', 'hello world'));
+
+	// Tabs and other whitespace
+	t.true(isMatch('hello\tworld', 'hello*world'));
+	t.true(isMatch('hello\nworld', 'hello*world'));
+});
+
+test('negation edge cases', t => {
+	// Negation with no positive patterns
+	t.true(isMatch('foo', ['!bar']));
+	t.false(isMatch('bar', ['!bar']));
+
+	// Multiple negations
+	t.true(isMatch('foo', ['!bar', '!baz', '!qux']));
+	t.false(isMatch('bar', ['!bar', '!baz', '!qux']));
+
+	// Negation that would match everything
+	t.false(isMatch('anything', ['!*']));
+	t.false(isMatch('', ['!*']));
+});
+
+test('case sensitivity edge cases', t => {
+	// Patterns with mixed case
+	t.true(isMatch('FooBar', 'foo*', {caseSensitive: false}));
+	t.false(isMatch('FooBar', 'foo*', {caseSensitive: true}));
+	t.true(isMatch('FooBar', 'Foo*', {caseSensitive: true}));
+
+	// Numbers and special chars (should not be affected by case sensitivity)
+	t.true(isMatch('test123', 'test*', {caseSensitive: false}));
+	t.true(isMatch('test123', 'test*', {caseSensitive: true}));
+	t.true(isMatch('test-123', '*-123', {caseSensitive: false}));
+	t.true(isMatch('test-123', '*-123', {caseSensitive: true}));
+});

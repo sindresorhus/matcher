@@ -35,7 +35,8 @@ const makeRegexp = (pattern, options) => {
 		...options,
 	};
 
-	const cacheKey = pattern + JSON.stringify(options);
+	const flags = 's' + (options.caseSensitive ? '' : 'i'); // Always dotAll, optionally case-insensitive
+	const cacheKey = pattern + '|' + flags;
 
 	if (regexpCache.has(cacheKey)) {
 		return regexpCache.get(cacheKey);
@@ -47,9 +48,19 @@ const makeRegexp = (pattern, options) => {
 		pattern = pattern.slice(1);
 	}
 
-	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '[\\s\\S]*');
+	// Handle escapes: first preserve escaped chars, then convert * to wildcards
+	pattern = pattern
+		.replace(/\\\*/g, '__ESCAPED_STAR__') // \* -> placeholder
+		.replace(/\\\\/g, '__ESCAPED_BACKSLASH__') // \\ -> placeholder
+		.replace(/\\(.)/g, '$1'); // Other escapes like \<space> -> <space>
 
-	const regexp = new RegExp(`^${pattern}$`, options.caseSensitive ? '' : 'i');
+	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*'); // * -> .*
+
+	pattern = pattern
+		.replace(/__ESCAPED_STAR__/g, '\\*') // Restore escaped *
+		.replace(/__ESCAPED_BACKSLASH__/g, '\\\\'); // Restore escaped \
+
+	const regexp = new RegExp(`^${pattern}$`, flags);
 	regexp.negated = negated;
 	regexpCache.set(cacheKey, regexp);
 
@@ -87,13 +98,16 @@ const baseMatcher = (inputs, patterns, options, firstMatchOnly) => {
 			}
 		}
 
-		if (
-			!(
-				matches === false
-				|| (matches === undefined && patterns.some(pattern => !pattern.negated))
-				|| (allPatterns && didFit.some((yes, index) => !yes && !patterns[index].negated))
-			)
-		) {
+		// Include input if:
+		// - A negated pattern matched (matches === false) -> exclude
+		// - No pattern matched but there are non-negated patterns -> exclude
+		// - allPatterns is true and some non-negated pattern didn't match -> exclude
+		// Otherwise -> include
+		const shouldExclude = matches === false
+			|| (matches === undefined && patterns.some(pattern => !pattern.negated))
+			|| (allPatterns && didFit.some((yes, index) => !yes && !patterns[index].negated));
+
+		if (!shouldExclude) {
 			result.push(input);
 
 			if (firstMatchOnly) {
