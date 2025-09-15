@@ -1,6 +1,6 @@
-export interface Options {
+export type Options = {
 	/**
-	Treat uppercase and lowercase characters as being the same.
+	Make matching case-sensitive. When `false`, treats uppercase and lowercase characters as being the same.
 
 	Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
@@ -49,7 +49,7 @@ export interface Options {
 	```
 	*/
 	readonly allPatterns?: boolean;
-}
+};
 
 /**
 Simple [wildcard](https://en.wikipedia.org/wiki/Wildcard_character) matching.

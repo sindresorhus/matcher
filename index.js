@@ -5,20 +5,25 @@ const regexpCache = new Map();
 const sanitizeArray = (input, inputName) => {
 	if (!Array.isArray(input)) {
 		switch (typeof input) {
-			case 'string':
+			case 'string': {
 				input = [input];
 				break;
-			case 'undefined':
+			}
+
+			case 'undefined': {
 				input = [];
 				break;
-			default:
+			}
+
+			default: {
 				throw new TypeError(`Expected '${inputName}' to be a string or an array, but got a type of '${typeof input}'`);
+			}
 		}
 	}
 
 	return input.filter(string => {
 		if (typeof string !== 'string') {
-			if (typeof string === 'undefined') {
+			if (string === undefined) {
 				return false;
 			}
 
@@ -50,15 +55,15 @@ const makeRegexp = (pattern, options) => {
 
 	// Handle escapes: first preserve escaped chars, then convert * to wildcards
 	pattern = pattern
-		.replace(/\\\*/g, '__ESCAPED_STAR__') // \* -> placeholder
-		.replace(/\\\\/g, '__ESCAPED_BACKSLASH__') // \\ -> placeholder
-		.replace(/\\(.)/g, '$1'); // Other escapes like \<space> -> <space>
+		.replaceAll(String.raw`\*`, '__ESCAPED_STAR__') // \* -> placeholder
+		.replaceAll('\\\\', '__ESCAPED_BACKSLASH__') // \\ -> placeholder
+		.replaceAll(/\\(.)/g, '$1'); // Other escapes like \<space> -> <space>
 
-	pattern = escapeStringRegexp(pattern).replace(/\\\*/g, '.*'); // * -> .*
+	pattern = escapeStringRegexp(pattern).replaceAll(String.raw`\*`, '.*'); // * -> .*
 
 	pattern = pattern
-		.replace(/__ESCAPED_STAR__/g, '\\*') // Restore escaped *
-		.replace(/__ESCAPED_BACKSLASH__/g, '\\\\'); // Restore escaped \
+		.replaceAll('__ESCAPED_STAR__', String.raw`\*`) // Restore escaped *
+		.replaceAll('__ESCAPED_BACKSLASH__', '\\\\'); // Restore escaped \
 
 	const regexp = new RegExp(`^${pattern}$`, flags);
 	regexp.negated = negated;
@@ -77,42 +82,75 @@ const baseMatcher = (inputs, patterns, options, firstMatchOnly) => {
 
 	patterns = patterns.map(pattern => makeRegexp(pattern, options));
 
+	// Partition patterns for faster processing
+	const negatedPatterns = patterns.filter(pattern => pattern.negated);
+	const positivePatterns = patterns.filter(pattern => !pattern.negated);
+
 	const {allPatterns} = options || {};
 	const result = [];
 
-	for (const input of inputs) {
-		// String is included only if it matches at least one non-negated pattern supplied.
-		// Note: the `allPatterns` option requires every non-negated pattern to be matched once.
-		// Matching a negated pattern excludes the string.
-		let matches;
-		const didFit = Array.from({length: patterns.length}, () => false);
-
-		for (const [index, pattern] of patterns.entries()) {
-			if (pattern.test(input)) {
-				didFit[index] = true;
-				matches = !pattern.negated;
-
-				if (!matches) {
-					break;
+	// Special handling for multiple negations with allPatterns and isMatch
+	if (allPatterns && firstMatchOnly && negatedPatterns.length > 1 && positivePatterns.length === 0) {
+		// Multiple negations only: ALL inputs must satisfy constraints (none should match any negation)
+		for (const input of inputs) {
+			for (const pattern of negatedPatterns) {
+				if (pattern.test(input)) {
+					return []; // Any input matching a negation means no match
 				}
 			}
 		}
 
-		// Include input if:
-		// - A negated pattern matched (matches === false) -> exclude
-		// - No pattern matched but there are non-negated patterns -> exclude
-		// - allPatterns is true and some non-negated pattern didn't match -> exclude
-		// Otherwise -> include
-		const shouldExclude = matches === false
-			|| (matches === undefined && patterns.some(pattern => !pattern.negated))
-			|| (allPatterns && didFit.some((yes, index) => !yes && !patterns[index].negated));
+		return inputs.slice(0, 1); // All inputs passed negation constraints
+	}
 
-		if (!shouldExclude) {
-			result.push(input);
-
-			if (firstMatchOnly) {
+	for (const input of inputs) {
+		// Check negated patterns first (immediate exclusion)
+		let excludedByNegation = false;
+		for (const pattern of negatedPatterns) {
+			if (pattern.test(input)) {
+				excludedByNegation = true;
 				break;
 			}
+		}
+
+		if (excludedByNegation) {
+			continue; // Skip this input
+		}
+
+		// Check positive patterns
+		if (positivePatterns.length === 0) {
+			// No positive patterns - include if no negations matched (already checked above)
+			result.push(input);
+		} else if (allPatterns) {
+			// AND logic: include if ALL positive patterns match
+			const matchedPositive = Array.from({length: positivePatterns.length}, () => false);
+			for (const [index, pattern] of positivePatterns.entries()) {
+				if (pattern.test(input)) {
+					matchedPositive[index] = true;
+				}
+			}
+
+			// All positive patterns must match
+			if (matchedPositive.every(Boolean)) {
+				result.push(input);
+			}
+		} else {
+			// OR logic: include if any positive pattern matches
+			let matchedAny = false;
+			for (const pattern of positivePatterns) {
+				if (pattern.test(input)) {
+					matchedAny = true;
+					break; // Short-circuit on first match
+				}
+			}
+
+			if (matchedAny) {
+				result.push(input);
+			}
+		}
+
+		if (firstMatchOnly && result.length > 0) {
+			break;
 		}
 	}
 

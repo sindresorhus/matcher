@@ -28,7 +28,7 @@ test('isMatch()', t => {
 	t.false(isMatch('unicorn', ''));
 	t.false(isMatch('unicorn', '!unicorn'));
 	t.false(isMatch('unicorn', '!uni*'));
-	t.false(isMatch('unicorn', 'uni\\*'));
+	t.false(isMatch('unicorn', String.raw`uni\*`));
 	t.true(isMatch('unicorn', '!tricorn'));
 	t.true(isMatch('unicorn', '!tri*'));
 
@@ -315,13 +315,11 @@ test('isMatch() with allPatterns option', t => {
 	t.true(isMatch(['foo', 'bar', 'for'], ['f*', '!b*'], flags));
 	t.true(isMatch(['foo', 'bar', 'for'], ['f*', '!x*'], flags));
 	t.true(isMatch(['foo', 'bar'], ['!bar'], flags));
-	t.true(
-		isMatch(
-			['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
-			['*edge*', '*tiger*', '!*stunt*'],
-			flags,
-		),
-	);
+	t.true(isMatch(
+		['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edge is a stunt'],
+		['*edge*', '*tiger*', '!*stunt*'],
+		flags,
+	));
 });
 
 test('isMatch() uses OR logic by default (matches ANY pattern)', t => {
@@ -405,22 +403,22 @@ test('issue #32 regression test', t => {
 
 test('escaped characters handling', t => {
 	// Escaped asterisks must stay literal (critical correctness)
-	t.false(isMatch('unicorn', 'uni\\*')); // Per README promise
-	t.true(isMatch('uni*', 'uni\\*')); // Should match literal asterisk
-	t.false(isMatch('unixcorn', 'uni\\*')); // Should not wildcard
+	t.false(isMatch('unicorn', String.raw`uni\*`)); // Per README promise
+	t.true(isMatch('uni*', String.raw`uni\*`)); // Should match literal asterisk
+	t.false(isMatch('unixcorn', String.raw`uni\*`)); // Should not wildcard
 
 	// Escaped spaces
-	t.true(isMatch('a b', 'a\\ b')); // Should match literal space
-	t.false(isMatch('ab', 'a\\ b')); // Should require space
-	t.false(isMatch('axb', 'a\\ b')); // Should not wildcard
+	t.true(isMatch('a b', String.raw`a\ b`)); // Should match literal space
+	t.false(isMatch('ab', String.raw`a\ b`)); // Should require space
+	t.false(isMatch('axb', String.raw`a\ b`)); // Should not wildcard
 
 	// Escaped backslashes
 	t.true(isMatch('test\\', 'test\\\\'));
 	t.false(isMatch('test', 'test\\\\'));
 
 	// Multiple escapes
-	t.true(isMatch('a\\*b', 'a\\\\\\*b'));
-	t.false(isMatch('axb', 'a\\\\\\*b'));
+	t.true(isMatch(String.raw`a\*b`, String.raw`a\\\*b`));
+	t.false(isMatch('axb', String.raw`a\\\*b`));
 });
 
 test('newlines with dotAll flag', t => {
@@ -465,17 +463,17 @@ test('allPatterns edge cases', t => {
 });
 
 test('multiple escaped stars in one pattern', t => {
-	t.true(isMatch('a*b*c', 'a\\*b\\*c'));
-	t.false(isMatch('axbxc', 'a\\*b\\*c'));
-	t.true(isMatch('a*b*c*d', 'a\\*b\\*c\\*d'));
+	t.true(isMatch('a*b*c', String.raw`a\*b\*c`));
+	t.false(isMatch('axbxc', String.raw`a\*b\*c`));
+	t.true(isMatch('a*b*c*d', String.raw`a\*b\*c\*d`));
 });
 
 test('mixed escaped and unescaped wildcards', t => {
-	t.true(isMatch('a*bcd', 'a\\*b*')); // Literal * then wildcard
-	t.true(isMatch('a*bxd', 'a\\*b*')); // Literal * then wildcard matching x
-	t.false(isMatch('axbcd', 'a\\*b*')); // Missing literal *
-	t.true(isMatch('test*end', '*\\*end')); // Wildcard then literal *
-	t.false(isMatch('testend', '*\\*end')); // Missing literal *
+	t.true(isMatch('a*bcd', String.raw`a\*b*`)); // Literal * then wildcard
+	t.true(isMatch('a*bxd', String.raw`a\*b*`)); // Literal * then wildcard matching x
+	t.false(isMatch('axbcd', String.raw`a\*b*`)); // Missing literal *
+	t.true(isMatch('test*end', String.raw`*\*end`)); // Wildcard then literal *
+	t.false(isMatch('testend', String.raw`*\*end`)); // Missing literal *
 });
 
 test('consecutive wildcards optimization', t => {
@@ -498,7 +496,7 @@ test('empty string with wildcards', t => {
 test('pattern ending with escape character', t => {
 	t.false(isMatch('test', 'test\\'));
 	t.true(isMatch('test\\', 'test\\\\'));
-	t.false(isMatch('test\\x', 'test\\'));
+	t.false(isMatch(String.raw`test\x`, 'test\\'));
 });
 
 test('real-world file matching scenarios', t => {
@@ -561,4 +559,42 @@ test('case sensitivity edge cases', t => {
 	t.true(isMatch('test123', 'test*', {caseSensitive: true}));
 	t.true(isMatch('test-123', '*-123', {caseSensitive: false}));
 	t.true(isMatch('test-123', '*-123', {caseSensitive: true}));
+});
+
+test('spaces in single pattern (README example)', t => {
+	// Prove the README "spaces in a single pattern" example works
+	t.true(isMatch('foo bar baz', 'foo b* b*'));
+	t.false(isMatch('foo bar', 'foo b* b*'));
+	t.true(isMatch('foo bx bz', 'foo b* b*'));
+	t.true(isMatch('foo b b', 'foo b* b*'));
+});
+
+test('allPatterns with only negations', t => {
+	// Should include items not matching any negation
+	t.true(isMatch('foo', ['!bar', '!baz'], {allPatterns: true}));
+	t.false(isMatch('bar', ['!bar', '!baz'], {allPatterns: true}));
+	t.false(isMatch('baz', ['!bar', '!baz'], {allPatterns: true}));
+	t.true(isMatch('qux', ['!bar', '!baz'], {allPatterns: true}));
+
+	// With multiple inputs
+	t.true(isMatch(['foo', 'qux'], ['!bar', '!baz'], {allPatterns: true}));
+	t.false(isMatch(['foo', 'bar'], ['!bar', '!baz'], {allPatterns: true})); // Bar matches !bar
+});
+
+test('massive pattern set with duplicates', t => {
+	// Test cache behavior and performance with duplicates
+	const patterns = [
+		...Array.from({length: 50}, () => 'test*'), // 50 duplicates
+		...Array.from({length: 50}, () => 'foo*'), // 50 more duplicates
+		'unique*',
+	];
+
+	t.true(isMatch('test123', patterns));
+	t.true(isMatch('foo123', patterns));
+	t.true(isMatch('unique123', patterns));
+	t.false(isMatch('nomatch', patterns));
+
+	// Ensure it works with matcher() too
+	const results = matcher(['test1', 'foo2', 'unique3', 'nomatch'], patterns);
+	t.deepEqual(results, ['test1', 'foo2', 'unique3']);
 });
