@@ -1,32 +1,25 @@
-import escapeStringRegexp from 'escape-string-regexp';
-
-const regexpCache = new Map();
+const maximumCacheSize = 1000;
+const patternCache = new Map();
 
 const sanitizeArray = (input, inputName) => {
+	if (input === undefined) {
+		return [];
+	}
+
+	if (typeof input === 'string') {
+		return [input];
+	}
+
 	if (!Array.isArray(input)) {
-		switch (typeof input) {
-			case 'string': {
-				input = [input];
-				break;
-			}
-
-			case 'undefined': {
-				input = [];
-				break;
-			}
-
-			default: {
-				throw new TypeError(`Expected '${inputName}' to be a string or an array, but got a type of '${typeof input}'`);
-			}
-		}
+		throw new TypeError(`Expected '${inputName}' to be a string or an array, but got a type of '${typeof input}'`);
 	}
 
 	return input.filter(string => {
-		if (typeof string !== 'string') {
-			if (string === undefined) {
-				return false;
-			}
+		if (string === undefined) {
+			return false;
+		}
 
+		if (typeof string !== 'string') {
 			throw new TypeError(`Expected '${inputName}' to be an array of strings, but found a type of '${typeof string}' in the array`);
 		}
 
@@ -34,133 +27,206 @@ const sanitizeArray = (input, inputName) => {
 	});
 };
 
-const makeRegexp = (pattern, options) => {
-	options = {
-		caseSensitive: false,
-		...options,
-	};
+// Splits a pattern into the literal parts between unescaped `*` wildcards. A backslash makes the next character literal.
+const splitOnWildcards = pattern => {
+	const parts = [];
+	let part = '';
+	// Append slices instead of single characters, since each append adds a rope node.
+	let sliceStart = 0;
 
-	const flags = 's' + (options.caseSensitive ? '' : 'i'); // Always dotAll, optionally case-insensitive
-	const cacheKey = pattern + '|' + flags;
+	for (let index = 0; index < pattern.length; index++) {
+		const character = pattern[index];
 
-	if (regexpCache.has(cacheKey)) {
-		return regexpCache.get(cacheKey);
+		if (character === '*') {
+			parts.push(part + pattern.slice(sliceStart, index));
+			part = '';
+			sliceStart = index + 1;
+		} else if (character === '\\' && index + 1 < pattern.length) {
+			// Drop the backslash and skip the escaped character so that it stays literal.
+			part += pattern.slice(sliceStart, index);
+			sliceStart = index + 1;
+			index++;
+		}
 	}
 
-	const negated = pattern[0] === '!';
+	parts.push(part + pattern.slice(sliceStart));
+
+	return parts;
+};
+
+// Greedy matching of each part at its first possible position is correct for `*`-only wildcards and never backtracks, unlike a regex, so the time is at most proportional to input length times pattern length.
+const matchesParts = (input, parts) => {
+	if (parts.length === 1) {
+		return input === parts[0];
+	}
+
+	const first = parts[0];
+	const last = parts.at(-1);
+	const end = input.length - last.length;
+
+	if (
+		end < first.length
+		|| !input.startsWith(first)
+		|| !input.endsWith(last)
+	) {
+		return false;
+	}
+
+	let position = first.length;
+
+	for (let partIndex = 1; partIndex < parts.length - 1; partIndex++) {
+		const part = parts[partIndex];
+		const index = input.indexOf(part, position);
+
+		if (index === -1 || index + part.length > end) {
+			return false;
+		}
+
+		position = index + part.length;
+	}
+
+	return true;
+};
+
+// Uppercase each character like a case-insensitive regex does. Keep the character if uppercasing changes its length or turns it into ASCII (`ß` → `SS`, `ı` → `I`), so lookalike characters do not match ASCII patterns.
+const uppercaseCharacter = character => {
+	const uppercase = character.toUpperCase();
+
+	if (
+		uppercase.length !== 1
+		|| (character.codePointAt(0) > 0x7F && uppercase.codePointAt(0) <= 0x7F)
+	) {
+		return character;
+	}
+
+	return uppercase;
+};
+
+const normalizeCase = (string, caseSensitive) => {
+	if (caseSensitive) {
+		return string;
+	}
+
+	// Fast path: if uppercasing the whole string keeps its length, no character became longer. `ı` and `ſ` are the only characters that uppercase from non-ASCII to ASCII, and surrogates are excluded to keep astral characters unchanged. The result is then the same as for `uppercaseCharacter()`.
+	if (!/[ıſ\uD800-\uDFFF]/.test(string)) {
+		const uppercase = string.toUpperCase();
+
+		if (uppercase.length === string.length) {
+			return uppercase;
+		}
+	}
+
+	return string
+		.replaceAll(/\P{ASCII}/gu, uppercaseCharacter)
+		.replaceAll(/[a-z]+/g, letters => letters.toUpperCase());
+};
+
+// The returned `test()` expects an input already passed through `normalizeCase()`.
+const makePattern = (pattern, caseSensitive) => {
+	const cacheKey = (caseSensitive ? 'S' : 'I') + pattern;
+
+	const cachedPattern = patternCache.get(cacheKey);
+
+	if (cachedPattern) {
+		return cachedPattern;
+	}
+
+	const negated = pattern.startsWith('!');
 
 	if (negated) {
 		pattern = pattern.slice(1);
 	}
 
-	// Handle escapes: first preserve escaped chars, then convert * to wildcards
-	pattern = pattern
-		.replaceAll(String.raw`\*`, '__ESCAPED_STAR__') // \* -> placeholder
-		.replaceAll('\\\\', '__ESCAPED_BACKSLASH__') // \\ -> placeholder
-		.replaceAll(/\\(.)/g, '$1'); // Other escapes like \<space> -> <space>
+	// Copy the parts so that the cache holds flat strings of their own. Otherwise, V8 can keep rope nodes, or the larger string the pattern was sliced from, in memory.
+	const parts = structuredClone(splitOnWildcards(normalizeCase(pattern, caseSensitive)));
 
-	pattern = escapeStringRegexp(pattern).replaceAll(String.raw`\*`, '.*'); // * -> .*
+	const compiledPattern = {
+		negated,
+		test: input => matchesParts(input, parts),
+	};
 
-	pattern = pattern
-		.replaceAll('__ESCAPED_STAR__', String.raw`\*`) // Restore escaped *
-		.replaceAll('__ESCAPED_BACKSLASH__', '\\\\'); // Restore escaped \
+	// Limit the cache so that many different patterns cannot use unlimited memory. A `Map` keeps insertion order, so the first key is the oldest.
+	if (patternCache.size >= maximumCacheSize) {
+		patternCache.delete(patternCache.keys().next().value);
+	}
 
-	const regexp = new RegExp(`^${pattern}$`, flags);
-	regexp.negated = negated;
-	regexpCache.set(cacheKey, regexp);
+	patternCache.set(cacheKey, compiledPattern);
 
-	return regexp;
+	return compiledPattern;
 };
 
-const baseMatcher = (inputs, patterns, options, firstMatchOnly) => {
-	inputs = sanitizeArray(inputs, 'inputs');
+// Returns a function that checks whether one input matches the patterns, and whether `isMatch()` must require all inputs to match.
+const compilePatterns = (patterns, options) => {
 	patterns = sanitizeArray(patterns, 'patterns');
 
 	if (patterns.length === 0) {
-		return [];
+		return {matches: () => false, requiresAllInputs: false};
 	}
 
-	patterns = patterns.map(pattern => makeRegexp(pattern, options));
+	const {allPatterns, caseSensitive} = {allPatterns: false, caseSensitive: false, ...options};
+	const compiledPatterns = patterns.map(pattern => makePattern(pattern, caseSensitive));
 
 	// Partition patterns for faster processing
-	const negatedPatterns = patterns.filter(pattern => pattern.negated);
-	const positivePatterns = patterns.filter(pattern => !pattern.negated);
+	const negatedPatterns = compiledPatterns.filter(pattern => pattern.negated);
+	const positivePatterns = compiledPatterns.filter(pattern => !pattern.negated);
 
-	const {allPatterns} = options || {};
-	const result = [];
+	const matches = input => {
+		const comparableInput = normalizeCase(input, caseSensitive);
 
-	// Special handling for multiple negations with allPatterns and isMatch
-	if (allPatterns && firstMatchOnly && negatedPatterns.length > 1 && positivePatterns.length === 0) {
-		// Multiple negations only: ALL inputs must satisfy constraints (none should match any negation)
-		for (const input of inputs) {
-			for (const pattern of negatedPatterns) {
-				if (pattern.test(input)) {
-					return []; // Any input matching a negation means no match
-				}
-			}
-		}
-
-		return inputs.slice(0, 1); // All inputs passed negation constraints
-	}
-
-	for (const input of inputs) {
 		// Check negated patterns first (immediate exclusion)
-		let excludedByNegation = false;
 		for (const pattern of negatedPatterns) {
-			if (pattern.test(input)) {
-				excludedByNegation = true;
-				break;
+			if (pattern.test(comparableInput)) {
+				return false;
 			}
 		}
 
-		if (excludedByNegation) {
-			continue; // Skip this input
-		}
-
-		// Check positive patterns
+		// No positive patterns - include if no negations matched (already checked above)
 		if (positivePatterns.length === 0) {
-			// No positive patterns - include if no negations matched (already checked above)
-			result.push(input);
-		} else if (allPatterns) {
+			return true;
+		}
+
+		if (allPatterns) {
 			// AND logic: include if ALL positive patterns match
-			const matchedPositive = Array.from({length: positivePatterns.length}, () => false);
-			for (const [index, pattern] of positivePatterns.entries()) {
-				if (pattern.test(input)) {
-					matchedPositive[index] = true;
-				}
-			}
-
-			// All positive patterns must match
-			if (matchedPositive.every(Boolean)) {
-				result.push(input);
-			}
-		} else {
-			// OR logic: include if any positive pattern matches
-			let matchedAny = false;
 			for (const pattern of positivePatterns) {
-				if (pattern.test(input)) {
-					matchedAny = true;
-					break; // Short-circuit on first match
+				if (!pattern.test(comparableInput)) {
+					return false;
 				}
 			}
 
-			if (matchedAny) {
-				result.push(input);
+			return true;
+		}
+
+		// OR logic: include if any positive pattern matches
+		for (const pattern of positivePatterns) {
+			if (pattern.test(comparableInput)) {
+				return true; // Short-circuit on first match
 			}
 		}
 
-		if (firstMatchOnly && result.length > 0) {
-			break;
-		}
-	}
+		return false;
+	};
 
-	return result;
+	return {
+		matches,
+		// Special handling for multiple negations with allPatterns and isMatch
+		requiresAllInputs: allPatterns && negatedPatterns.length > 1 && positivePatterns.length === 0,
+	};
 };
 
 export function matcher(inputs, patterns, options) {
-	return baseMatcher(inputs, patterns, options, false);
+	inputs = sanitizeArray(inputs, 'inputs');
+	const {matches} = compilePatterns(patterns, options);
+	return inputs.filter(input => matches(input));
 }
 
 export function isMatch(inputs, patterns, options) {
-	return baseMatcher(inputs, patterns, options, true).length > 0;
+	inputs = sanitizeArray(inputs, 'inputs');
+	const {matches, requiresAllInputs} = compilePatterns(patterns, options);
+
+	if (requiresAllInputs) {
+		// Multiple negations only: ALL inputs must satisfy constraints (none should match any negation)
+		return inputs.length > 0 && inputs.every(input => matches(input));
+	}
+
+	return inputs.some(input => matches(input));
 }

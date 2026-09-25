@@ -366,7 +366,7 @@ test('isMatch() documentation examples with allPatterns', t => {
 	t.false(isMatch('foo', ['foo*', '*bar'], {allPatterns: true}));
 });
 
-test('special regex characters are escaped properly', t => {
+test('special regex characters are literal', t => {
 	// Dots should be literal, not regex wildcard
 	t.true(isMatch('a.b', 'a.b'));
 	t.false(isMatch('axb', 'a.b'));
@@ -421,7 +421,7 @@ test('escaped characters handling', t => {
 	t.false(isMatch('axb', String.raw`a\\\*b`));
 });
 
-test('newlines with dotAll flag', t => {
+test('matches across newlines in wildcards', t => {
 	// The README promises foo*r matches foo\nbar (critical correctness)
 	t.true(isMatch('foo\nbar', 'foo*r'));
 	t.true(isMatch('foo\nbar', 'foo*'));
@@ -429,7 +429,7 @@ test('newlines with dotAll flag', t => {
 	t.true(isMatch('foo\r\nbar', 'foo*bar')); // Windows line endings
 });
 
-test('regex cache with different flags', t => {
+test('pattern cache with different case sensitivity', t => {
 	// Test potential cache collision bug
 	t.true(isMatch('FOO', 'foo', {caseSensitive: false}));
 	t.false(isMatch('FOO', 'foo', {caseSensitive: true}));
@@ -597,4 +597,369 @@ test('massive pattern set with duplicates', t => {
 	// Ensure it works with matcher() too
 	const results = matcher(['test1', 'foo2', 'unique3', 'nomatch'], patterns);
 	t.deepEqual(results, ['test1', 'foo2', 'unique3']);
+});
+
+test('matching time does not grow exponentially with the number of wildcards', t => {
+	const start = performance.now();
+	t.false(isMatch('a'.repeat(60), '*a'.repeat(30) + 'b'));
+	t.false(isMatch('a'.repeat(100_000), '*a*a*a*b'));
+	t.false(isMatch('a'.repeat(100_000), '*a*a*a*b', {caseSensitive: true}));
+	t.true(isMatch('a'.repeat(100_000) + 'b', '*a*a*a*b'));
+	t.true(performance.now() - start < 1000);
+});
+
+test('case-insensitive matching of long non-ASCII input is fast', t => {
+	const start = performance.now();
+	t.false(isMatch('é'.repeat(2_000_000), '*a'));
+	t.false(isMatch('a'.repeat(2_000_000) + 'é', '*b'));
+	t.false(isMatch('a'.repeat(2_000_000) + 'ß', '*b'));
+	t.true(performance.now() - start < 1000);
+});
+
+test('escaped backslash before a wildcard', t => {
+	t.true(isMatch(String.raw`a\bc`, String.raw`a\\*`));
+	t.false(isMatch('a*', String.raw`a\\*`));
+});
+
+test('placeholder-like text in patterns is literal', t => {
+	t.true(isMatch('__ESCAPED_STAR__', '__ESCAPED_STAR__'));
+	t.false(isMatch('*', '__ESCAPED_STAR__'));
+	t.true(isMatch('__ESCAPED_BACKSLASH__', '__ESCAPED_BACKSLASH__'));
+});
+
+test('case-insensitive matching does not fold lookalike characters into ASCII', t => {
+	t.false(isMatch('https://gıthub.com/login', 'https://github.com/*'));
+	t.false(isMatch('https://claßic.com/x', 'https://classic.com/*'));
+	t.false(isMatch('report.jſ', '*.js'));
+	t.false(isMatch('ﬁle', 'file'));
+	t.true(isMatch('ÆBLE', 'æble'));
+	t.true(isMatch('ΣΊΣΥΦΟΣ', 'σίσυφος'));
+});
+
+/* eslint-disable no-extend-native, no-use-extend-native/no-use-extend-native */
+test('ignores polluted options on the prototype', t => {
+	Object.prototype.caseSensitive = true;
+	Object.prototype.allPatterns = true;
+
+	try {
+		t.true(isMatch('SECRET.txt', 'secret*'));
+		t.deepEqual(matcher(['SECRET'], ['*', '!secret'], {}), []);
+		t.true(isMatch('foo', ['f*', 'b*']));
+	} finally {
+		delete Object.prototype.caseSensitive;
+		delete Object.prototype.allPatterns;
+	}
+});
+
+test('an empty pattern is not negated by a polluted prototype', t => {
+	Object.prototype[0] = '!';
+
+	let result;
+	try {
+		result = matcher(['a', ''], '', {caseSensitive: true});
+	} finally {
+		delete Object.prototype[0];
+	}
+
+	t.deepEqual(result, ['']);
+});
+/* eslint-enable no-extend-native, no-use-extend-native/no-use-extend-native */
+
+test('patterns still match correctly after the cache evicts them', t => {
+	for (let index = 0; index < 3000; index++) {
+		t.true(isMatch(`foo${index}bar`, `foo${index}*`));
+		t.false(isMatch(`FOO${index}bar`, `foo${index}*`, {caseSensitive: true}));
+	}
+
+	t.true(isMatch('foo0bar', 'foo0*'));
+	t.true(isMatch('FOO0bar', 'foo0*'));
+	t.false(isMatch('FOO0bar', 'foo0*', {caseSensitive: true}));
+	t.false(isMatch('foo1bar', 'foo0*'));
+});
+
+// Deterministic pseudo-random numbers (Park-Miller), so that failures can be reproduced.
+const createRandom = seed => () => {
+	seed = (seed * 16_807) % 2_147_483_647;
+	return (seed - 1) / 2_147_483_646;
+};
+
+const randomString = (random, alphabet, maximumLength) => Array.from({length: Math.floor(random() * (maximumLength + 1))}, () => alphabet[Math.floor(random() * alphabet.length)]).join('');
+
+const randomAlphabet = ['a', 'b', 'A', '.', '*', '\\', '!', '\n', 'ß', 'ı', 'é', 'É', 'Σ', 'ς', '😀', '\uD83D'];
+
+// Makes a pattern that only matches the given string.
+const escapePattern = string => string.replaceAll(/[\\*!]/g, String.raw`\$&`);
+
+// The documented semantics as a regex. Only safe for short patterns.
+const referenceIsMatch = (input, pattern, caseSensitive) => {
+	const negated = pattern.startsWith('!');
+	let source = '';
+
+	for (let index = negated ? 1 : 0; index < pattern.length; index++) {
+		let character = pattern[index];
+
+		if (character === '*') {
+			source += '.*';
+			continue;
+		}
+
+		if (character === '\\' && index + 1 < pattern.length) {
+			index++;
+			character = pattern[index];
+		}
+
+		source += character.replaceAll(/[|\\{}()[\]^$+*?.-]/g, String.raw`\$&`);
+	}
+
+	const matches = new RegExp(`^${source}$`, caseSensitive ? 's' : 'si').test(input);
+	return negated ? !matches : matches;
+};
+
+const checkAgainstReference = (t, {seed, alphabet, maximumLength, iterations}) => {
+	const random = createRandom(seed);
+
+	for (let index = 0; index < iterations; index++) {
+		const pattern = randomString(random, alphabet, maximumLength);
+		const input = randomString(random, alphabet, maximumLength);
+		const caseSensitive = random() < 0.5;
+		const expected = referenceIsMatch(input, pattern, caseSensitive);
+
+		if (isMatch(input, pattern, {caseSensitive}) !== expected) {
+			t.fail(`isMatch(${JSON.stringify(input)}, ${JSON.stringify(pattern)}, {caseSensitive: ${caseSensitive}}) should be ${expected}`);
+			return;
+		}
+	}
+
+	t.pass();
+};
+
+test('matches like the equivalent regex for random patterns and inputs', t => {
+	checkAgainstReference(t, {
+		seed: 1,
+		alphabet: randomAlphabet,
+		maximumLength: 6,
+		iterations: 5000,
+	});
+});
+
+test('matches like the equivalent regex for random wildcard-heavy patterns', t => {
+	// A small alphabet makes repeated and overlapping parts common.
+	checkAgainstReference(t, {
+		seed: 4,
+		alphabet: ['a', 'b', '*'],
+		maximumLength: 8,
+		iterations: 10_000,
+	});
+});
+
+test('an escaped pattern matches only its own text', t => {
+	const random = createRandom(2);
+
+	for (let index = 0; index < 2000; index++) {
+		const string = randomString(random, randomAlphabet, 10);
+		const pattern = escapePattern(string);
+
+		t.true(isMatch(string, pattern, {caseSensitive: true}));
+		t.false(isMatch(string + 'x', pattern, {caseSensitive: true}));
+		t.false(isMatch('x' + string, pattern, {caseSensitive: true}));
+		t.true(isMatch('x' + string + 'x', `*${pattern}*`, {caseSensitive: true}));
+	}
+});
+
+test('isMatch() agrees with matcher() for zero or one input', t => {
+	const random = createRandom(3);
+
+	for (let index = 0; index < 2000; index++) {
+		const inputs = random() < 0.2 ? [] : [randomString(random, randomAlphabet, 5)];
+		const patterns = Array.from({length: Math.floor(random() * 4)}, () => randomString(random, randomAlphabet, 4));
+		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
+
+		t.is(isMatch(inputs, patterns, options), matcher(inputs, patterns, options).length > 0);
+	}
+});
+
+test('matcher() keeps the input order and duplicates', t => {
+	t.deepEqual(matcher(['b', 'a', 'c', 'b'], ['a', 'b']), ['b', 'a', 'b']);
+	t.deepEqual(matcher(['b', 'a', 'c', 'b'], ['!c']), ['b', 'a', 'b']);
+});
+
+test('does not mutate the arguments', t => {
+	const inputs = Object.freeze(['foo', 'bar']);
+	const patterns = Object.freeze(['f*', '!bar']);
+	const options = Object.freeze({caseSensitive: true, allPatterns: true});
+
+	t.deepEqual(matcher(inputs, patterns, options), ['foo']);
+	t.true(isMatch(inputs, patterns, options));
+	t.deepEqual(inputs, ['foo', 'bar']);
+	t.deepEqual(patterns, ['f*', '!bar']);
+});
+
+test('a lone `!` pattern excludes only the empty string', t => {
+	t.true(isMatch('a', '!'));
+	t.false(isMatch('', '!'));
+	t.deepEqual(matcher(['', 'a', ''], '!'), ['a']);
+});
+
+test('only a leading `!` negates', t => {
+	t.true(isMatch('!foo', String.raw`\!foo`));
+	t.false(isMatch('foo', String.raw`\!foo`));
+	t.true(isMatch('a!b', 'a!*'));
+	t.false(isMatch('!foo', '!!foo'));
+	t.true(isMatch('foo', '!!foo'));
+	t.true(isMatch('!', String.raw`\!`));
+});
+
+test('the same pattern with and without negation', t => {
+	t.true(isMatch('foo', 'foo'));
+	t.false(isMatch('foo', '!foo'));
+	t.true(isMatch('foo', 'foo'));
+	t.false(isMatch('foo', ['foo', '!foo']));
+	t.false(isMatch('foo', ['!foo', 'foo']));
+});
+
+test('literal parts around a wildcard must not overlap', t => {
+	t.false(isMatch('a', 'a*a'));
+	t.true(isMatch('aa', 'a*a'));
+	t.false(isMatch('abc', 'ab*bc'));
+	t.true(isMatch('abbc', 'ab*bc'));
+	t.false(isMatch('ab', '*ab*b'));
+	t.true(isMatch('abb', '*ab*b'));
+	t.false(isMatch('aba', 'aba*aba'));
+	t.true(isMatch('abaaba', 'aba*aba'));
+});
+
+test('middle parts must appear in order', t => {
+	t.true(isMatch('xaxbx', '*a*b*'));
+	t.false(isMatch('xbxax', '*a*b*'));
+	t.true(isMatch('aab', '*a*ab'));
+	t.true(isMatch('abcabc', '*bc*ab*'));
+	t.false(isMatch('abcab', '*bc*abc'));
+	t.true(isMatch('foo.min.js', '*.min.*js'));
+	t.false(isMatch('foo.js.min', '*.min.*js'));
+});
+
+test('middle parts must not overlap each other', t => {
+	t.false(isMatch('a', '*a*a*'));
+	t.true(isMatch('aa', '*a*a*'));
+	t.false(isMatch('aba', '*ab*ba*'));
+	t.true(isMatch('abba', '*ab*ba*'));
+	t.false(isMatch('aaa', '*aa*aa*'));
+	t.true(isMatch('aaaa', '*aa*aa*'));
+});
+
+test('an escaped wildcard between wildcards', t => {
+	t.true(isMatch('a*b', String.raw`*\**`));
+	t.true(isMatch('*', String.raw`*\**`));
+	t.false(isMatch('ab', String.raw`*\**`));
+	t.true(isMatch('**', String.raw`\*\*`));
+	t.false(isMatch('*x*', String.raw`\*\*`));
+});
+
+test('a backslash escapes any character', t => {
+	t.true(isMatch('abc', String.raw`\a\b\c`));
+	t.true(isMatch('\n', '\\\n'));
+	t.true(isMatch('😀', String.raw`\😀`));
+	t.true(isMatch(String.raw`\a`, String.raw`\\a`));
+	t.false(isMatch('a', String.raw`\\a`));
+});
+
+test('consecutive wildcards around literals', t => {
+	t.true(isMatch('abc', '**b**'));
+	t.true(isMatch('b', '**b**'));
+	t.false(isMatch('ac', '**b**'));
+	t.true(isMatch('ab', 'a***b'));
+	t.false(isMatch('a', 'a***b'));
+});
+
+test('wildcards match surrogate pairs and lone surrogates', t => {
+	t.true(isMatch('😀', '*'));
+	t.true(isMatch('a😀b', 'a*b'));
+	t.true(isMatch('😀🦄', '😀*'));
+	t.true(isMatch('\uD800', '*'));
+	t.true(isMatch('a\uDC00', 'A\uDC00'));
+	// Like a regex without the `u` flag, patterns work on UTF-16 code units, so a wildcard can match half of a surrogate pair.
+	t.true(isMatch('😀', '\uD83D*'));
+});
+
+test('case-insensitive matching of non-ASCII letters', t => {
+	t.true(isMatch('ÉCOLE', 'école'));
+	t.true(isMatch('ΟΔΟΣ', 'οδος'));
+	t.true(isMatch('ς', 'σ'));
+	t.true(isMatch('ДОМ', 'дом'));
+	t.false(isMatch('ÉCOLE', 'école', {caseSensitive: true}));
+	t.false(isMatch('ß', 'ẞ'));
+	t.false(isMatch('\u212A', 'k')); // Kelvin sign
+	t.false(isMatch('𐐀', '𐐨')); // Astral case pairs are not folded, like a regex without the `u` flag
+});
+
+test('options can be null or have truthy values', t => {
+	t.true(isMatch('FOO', 'foo', null));
+	t.deepEqual(matcher(['FOO'], 'foo', null), ['FOO']);
+	t.false(isMatch('FOO', 'foo', {caseSensitive: 1}));
+	t.false(isMatch(['foo', 'bar'], ['f*', 'b*'], {allPatterns: 'yes'}));
+});
+
+test('throws descriptive errors for invalid arguments', t => {
+	t.throws(() => {
+		matcher(1, 'a');
+	}, {instanceOf: TypeError, message: 'Expected \'inputs\' to be a string or an array, but got a type of \'number\''});
+
+	t.throws(() => {
+		isMatch('a', [null]);
+	}, {instanceOf: TypeError, message: 'Expected \'patterns\' to be an array of strings, but found a type of \'object\' in the array'});
+
+	t.throws(() => {
+		matcher(new Set(['a']), 'a');
+	}, {instanceOf: TypeError, message: /'inputs'/});
+
+	// Inputs are validated before patterns
+	t.throws(() => {
+		isMatch(1, 1);
+	}, {message: /'inputs'/});
+});
+
+test('holes in arrays are ignored', t => {
+	const inputs = ['a', 'b'];
+	inputs[3] = 'c';
+	const patterns = ['a', 'c'];
+	patterns[5] = 'b';
+
+	t.deepEqual(matcher(inputs, '*'), ['a', 'b', 'c']);
+	t.deepEqual(matcher(['a', 'b', 'c'], patterns), ['a', 'b', 'c']);
+});
+
+test('matcher() with many inputs and patterns', t => {
+	const inputs = Array.from({length: 1000}, (_, index) => `item${index}`);
+
+	t.is(matcher(inputs, 'item1*').length, 111); // 1, 10-19, 100-199
+	t.is(matcher(inputs, ['item1*', '!*0']).length, 100);
+	t.is(matcher(inputs, ['item*', '!item?*']).length, 1000); // `?` is not a wildcard
+	t.is(matcher(inputs, ['*1*', '*2*'], {allPatterns: true}).length, 54); // 1000 - 729 without a 1 - 729 without a 2 + 512 without both
+	t.is(matcher(inputs, Array.from({length: 100}, (_, index) => `item${index * 10}`)).length, 100);
+});
+
+test('allPatterns with only negations: matcher() checks each input, but isMatch() requires all inputs', t => {
+	const patterns = ['!bar', '!baz'];
+	const options = {allPatterns: true};
+
+	t.deepEqual(matcher(['foo', 'bar'], patterns, options), ['foo']);
+	t.false(isMatch(['foo', 'bar'], patterns, options));
+	t.true(isMatch(['foo', 'qux'], patterns, options));
+	t.false(isMatch([], patterns, options));
+});
+
+test('allPatterns with empty and wildcard patterns', t => {
+	t.true(isMatch('', ['', '*'], {allPatterns: true}));
+	t.false(isMatch('a', ['', '*'], {allPatterns: true}));
+	t.deepEqual(matcher(['', 'a'], ['*', '!'], {allPatterns: true}), ['a']);
+});
+
+test('long literal patterns and many wildcards', t => {
+	const long = 'ab'.repeat(50_000);
+
+	t.true(isMatch(long, long));
+	t.false(isMatch(long + 'a', long));
+	t.true(isMatch(long, `a*${'*'.repeat(10_000)}b`));
+	t.true(isMatch(long, `*${'b*'.repeat(1000)}`));
+	t.false(isMatch(long, `*${'c*'.repeat(1000)}`));
 });

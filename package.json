@@ -44,9 +44,6 @@
 		"globbing",
 		"minimatch"
 	],
-	"dependencies": {
-		"escape-string-regexp": "^5.0.0"
-	},
 	"devDependencies": {
 		"ava": "^6.4.1",
 		"matcha": "^0.7.0",
