@@ -578,7 +578,8 @@ test('allPatterns with only negations', t => {
 
 	// With multiple inputs
 	t.true(isMatch(['foo', 'qux'], ['!bar', '!baz'], {allPatterns: true}));
-	t.false(isMatch(['foo', 'bar'], ['!bar', '!baz'], {allPatterns: true})); // Bar matches !bar
+	t.true(isMatch(['foo', 'bar'], ['!bar', '!baz'], {allPatterns: true})); // Only `bar` is excluded
+	t.false(isMatch(['bar', 'baz'], ['!bar', '!baz'], {allPatterns: true})); // Both are excluded
 });
 
 test('massive pattern set with duplicates', t => {
@@ -938,14 +939,61 @@ test('matcher() with many inputs and patterns', t => {
 	t.is(matcher(inputs, Array.from({length: 100}, (_, index) => `item${index * 10}`)).length, 100);
 });
 
-test('allPatterns with only negations: matcher() checks each input, but isMatch() requires all inputs', t => {
+test('allPatterns with only negations: each input is checked on its own', t => {
 	const patterns = ['!bar', '!baz'];
 	const options = {allPatterns: true};
 
+	// An input is kept when it matches none of the negations. `isMatch()` is just
+	// "did any input survive", so it must agree with `matcher()` here too.
 	t.deepEqual(matcher(['foo', 'bar'], patterns, options), ['foo']);
-	t.false(isMatch(['foo', 'bar'], patterns, options));
+	t.true(isMatch(['foo', 'bar'], patterns, options));
 	t.true(isMatch(['foo', 'qux'], patterns, options));
+	t.false(isMatch(['bar', 'baz'], patterns, options));
 	t.false(isMatch([], patterns, options));
+});
+
+test('repeating a negated pattern does not change isMatch()', t => {
+	const options = {allPatterns: true};
+
+	// Listing the same negation twice used to flip the answer, because the number of
+	// negated patterns decided whether isMatch() required every input to pass.
+	t.true(isMatch(['foo', 'bar'], ['!bar'], options));
+	t.true(isMatch(['foo', 'bar'], ['!bar', '!bar'], options));
+	t.true(isMatch(['foo', 'bar'], ['!bar', '!bar', '!bar'], options));
+	t.false(isMatch(['bar'], ['!bar', '!bar'], options));
+	t.true(isMatch(['foo'], ['!bar', '!bar'], options));
+
+	t.true(isMatch(['foo', 'bar'], ['!bar', '!baz'], options));
+	t.true(isMatch(['foo', 'bar'], ['!baz', '!bar'], options));
+	t.false(isMatch(['bar', 'baz'], ['!bar', '!baz'], options));
+});
+
+test('isMatch() always agrees with matcher()', t => {
+	const random = createRandom(9);
+	const alphabet = ['a', 'b', 'A', '*', '\\', '!', '\n', 'ß', 'ı', 'K'];
+
+	for (let index = 0; index < 3000; index++) {
+		const inputs = Array.from({length: Math.floor(random() * 5)}, () => randomString(random, alphabet, 4));
+		const patterns = Array.from({length: 1 + Math.floor(random() * 3)}, () => randomString(random, alphabet, 4));
+		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
+
+		t.is(isMatch(inputs, patterns, options), matcher(inputs, patterns, options).length > 0);
+	}
+});
+
+test('repeating or reordering patterns does not change the result', t => {
+	const random = createRandom(10);
+	const alphabet = ['a', 'b', 'A', '*', '\\', '!', '\n', 'ß', 'ı', 'K'];
+
+	for (let index = 0; index < 3000; index++) {
+		const inputs = Array.from({length: Math.floor(random() * 5)}, () => randomString(random, alphabet, 4));
+		const patterns = Array.from({length: 1 + Math.floor(random() * 3)}, () => randomString(random, alphabet, 4));
+		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
+
+		t.deepEqual(matcher(inputs, patterns, options), matcher(inputs, [...patterns, ...patterns], options));
+		t.deepEqual(matcher(inputs, patterns, options), matcher(inputs, [...patterns].reverse(), options));
+		t.is(isMatch(inputs, patterns, options), isMatch(inputs, [...patterns].reverse(), options));
+	}
 });
 
 test('allPatterns with empty and wildcard patterns', t => {

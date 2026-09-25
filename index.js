@@ -155,12 +155,12 @@ const makePattern = (pattern, caseSensitive) => {
 	return compiledPattern;
 };
 
-// Returns a function that checks whether one input matches the patterns, and whether `isMatch()` must require all inputs to match.
+// Returns a function that checks whether one input matches the patterns.
 const compilePatterns = (patterns, options) => {
 	patterns = sanitizeArray(patterns, 'patterns');
 
 	if (patterns.length === 0) {
-		return {matches: () => false, requiresAllInputs: false};
+		return () => false;
 	}
 
 	const {allPatterns, caseSensitive} = {allPatterns: false, caseSensitive: false, ...options};
@@ -170,7 +170,7 @@ const compilePatterns = (patterns, options) => {
 	const negatedPatterns = compiledPatterns.filter(pattern => pattern.negated);
 	const positivePatterns = compiledPatterns.filter(pattern => !pattern.negated);
 
-	const matches = input => {
+	return input => {
 		const comparableInput = normalizeCase(input, caseSensitive);
 
 		// Check negated patterns first (immediate exclusion)
@@ -205,28 +205,16 @@ const compilePatterns = (patterns, options) => {
 
 		return false;
 	};
-
-	return {
-		matches,
-		// Special handling for multiple negations with allPatterns and isMatch
-		requiresAllInputs: allPatterns && negatedPatterns.length > 1 && positivePatterns.length === 0,
-	};
 };
 
 export function matcher(inputs, patterns, options) {
 	inputs = sanitizeArray(inputs, 'inputs');
-	const {matches} = compilePatterns(patterns, options);
+	const matches = compilePatterns(patterns, options);
 	return inputs.filter(input => matches(input));
 }
 
 export function isMatch(inputs, patterns, options) {
 	inputs = sanitizeArray(inputs, 'inputs');
-	const {matches, requiresAllInputs} = compilePatterns(patterns, options);
-
-	if (requiresAllInputs) {
-		// Multiple negations only: ALL inputs must satisfy constraints (none should match any negation)
-		return inputs.length > 0 && inputs.every(input => matches(input));
-	}
-
+	const matches = compilePatterns(patterns, options);
 	return inputs.some(input => matches(input));
 }
