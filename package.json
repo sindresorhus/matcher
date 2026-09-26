@@ -5,11 +5,7 @@
 	"license": "MIT",
 	"repository": "sindresorhus/matcher",
 	"funding": "https://github.com/sponsors/sindresorhus",
-	"author": {
-		"name": "Sindre Sorhus",
-		"email": "sindresorhus@gmail.com",
-		"url": "https://sindresorhus.com"
-	},
+	"author": "Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)",
 	"type": "module",
 	"exports": {
 		"types": "./index.d.ts",
@@ -17,10 +13,10 @@
 	},
 	"sideEffects": false,
 	"engines": {
-		"node": ">=20"
+		"node": ">=22"
 	},
 	"scripts": {
-		"test": "xo && ava",
+		"test": "xo && node --test",
 		"bench": "_matcha bench.js"
 	},
 	"files": [
@@ -28,7 +24,6 @@
 		"index.d.ts"
 	],
 	"keywords": [
-		"matcher",
 		"matching",
 		"match",
 		"regex",
@@ -44,12 +39,8 @@
 		"globbing",
 		"minimatch"
 	],
-	"ava": {
-		"timeout": "2m"
-	},
 	"devDependencies": {
-		"ava": "^6.4.1",
 		"matcha": "^0.7.0",
-		"xo": "^1.2.2"
+		"xo": "^5.0.1"
 	}
 }

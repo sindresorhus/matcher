@@ -107,8 +107,8 @@ const normalizeCase = (string, caseSensitive) => {
 		return string;
 	}
 
-	// Fast path: if uppercasing the whole string keeps its length, no character became longer. `ı` and `ſ` are the only characters that uppercase from non-ASCII to ASCII, and surrogates are excluded to keep astral characters unchanged. The result is then the same as for `uppercaseCharacter()`.
-	if (!/[ıſ\uD800-\uDFFF]/.test(string)) {
+	// Fast path: if uppercasing the whole string keeps its length, no character became longer. `ı` and `ſ` are the only characters that uppercase from non-ASCII to ASCII, and astral characters and lone surrogates are excluded to keep them unchanged. The result is then the same as for `uppercaseCharacter()`.
+	if (!/[ıſ\u{D800}-\u{DFFF}\u{10000}-\u{10FFFF}]/v.test(string)) {
 		const uppercase = string.toUpperCase();
 
 		if (uppercase.length === string.length) {
@@ -117,8 +117,8 @@ const normalizeCase = (string, caseSensitive) => {
 	}
 
 	return string
-		.replaceAll(/\P{ASCII}/gu, uppercaseCharacter)
-		.replaceAll(/[a-z]+/g, letters => letters.toUpperCase());
+		.replaceAll(/\P{ASCII}/gv, character => uppercaseCharacter(character))
+		.replaceAll(/[a-z]+/gv, letters => letters.toUpperCase());
 };
 
 // The returned `test()` expects an input already passed through `normalizeCase()`.
@@ -163,6 +163,7 @@ const compilePatterns = (patterns, options) => {
 		return () => false;
 	}
 
+	// eslint-disable-next-line unicorn/prefer-object-destructuring-defaults -- Spreading copies only own properties, so options inherited from a polluted `Object.prototype` are ignored. Destructuring defaults would read them.
 	const {allPatterns, caseSensitive} = {allPatterns: false, caseSensitive: false, ...options};
 	const compiledPatterns = patterns.map(pattern => makePattern(pattern, caseSensitive));
 

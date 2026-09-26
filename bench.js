@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import {matcher, isMatch} from './index.js';
 
 const fixture = fs.readFileSync('fixture.txt', 'utf8');
-const paragraph = fixture.split('\n')[0];
-const sentence = fixture.split('.')[0];
+const paragraph = fixture.split('\n', 1)[0];
+const sentence = fixture.split('.', 1)[0];
 
 suite('matcher() - sentence', () => {
 	bench('multiple patterns', () => matcher(sentence.split(' '), ['*bar', '!foo', '!*oo']));
