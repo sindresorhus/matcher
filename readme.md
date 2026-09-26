@@ -91,7 +91,7 @@ Returns an array of `inputs` filtered based on the `patterns`.
 
 Accepts a string or an array of strings for both `inputs` and `patterns`.
 
-Returns a `boolean` of whether any of the given `inputs` matches at least one of the `patterns`.
+Returns a `boolean` of whether any of the given `inputs` matches the `patterns`. With `allPatterns` enabled, an input has to match every non-negated pattern, not just one.
 
 #### inputs
 
@@ -108,7 +108,7 @@ Type: `object`
 Type: `boolean`\
 Default: `false`
 
-Make matching case-sensitive. When `false`, treats uppercase and lowercase characters as being the same.
+Make matching case-sensitive. When `false`, treats uppercase and lowercase characters as being the same, the way a case-insensitive regular expression without the `u` flag does. So a character whose uppercase form is more than one character (`ß`) or is ASCII while the character itself is not (`ı`, `ſ`), and every character outside the Basic Multilingual Plane, only matches itself.
 
 Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
@@ -130,7 +130,7 @@ isMatch('unicorn', ['tri*', 'UNI*'], {caseSensitive: true});
 Type: `boolean`\
 Default: `false`
 
-Require all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
+A negated pattern always excludes the inputs it matches, whether or not this option is set. Setting it also requires every non-negated pattern to match the same input, instead of at least one of them.
 
 ```js
 import {matcher} from 'matcher';
@@ -146,10 +146,10 @@ demo(['Hey, tiger!', 'tiger has edge over hyenas', 'pushing a tiger over the edg
 import {matcher} from 'matcher';
 
 matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
-//=> ['foo', 'for', 'bar']
+//=> []
 
 matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
-//=> []
+//=> ['foo', 'for']
 ```
 
 #### patterns
@@ -160,7 +160,26 @@ Use `*` to match zero or more characters.
 
 A leading `!` negates the pattern.
 
-An input string will be omitted, if it does not match any non-negated patterns present, or if it matches a negated pattern, or if no pattern is present.
+A `\` escapes the character after it, so `\*` matches a literal `*` and `\\` matches a literal `\`. A `\` at the very end of a pattern matches itself.
+
+An input string will be omitted if there is no pattern at all, if it matches a negated pattern, or if there are non-negated patterns and it fails to match them: all of them when `allPatterns` is set, at least one otherwise. When every pattern is negated, an input is kept as long as it matches none of them.
+
+```js
+import {isMatch} from 'matcher';
+
+isMatch('unicorn', 'uni\\*');
+//=> false
+
+isMatch('uni*', 'uni\\*');
+//=> true
+
+// Every backslash in a Windows path has to be doubled, otherwise the first one escapes the second.
+isMatch('C:\\temp\\x', 'C:\\\\temp\\\\*');
+//=> true
+
+isMatch('C:\\temp\\x', 'C:\\temp\\*');
+//=> false
+```
 
 ## Benchmark
 

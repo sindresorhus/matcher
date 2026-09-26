@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'ava';
 import {matcher, isMatch} from './index.js';
 
@@ -397,7 +398,7 @@ test('complex allPatterns scenarios with negations', t => {
 test('issue #32 regression test', t => {
 	// This was a bug in v4.0.0 that returned false instead of true
 	t.true(isMatch(['foo', 'bar'], ['a*', 'b*'])); // 'bar' matches 'b*'
-	t.true(isMatch(['apple', 'zoo'], ['a*', 'b*'])); // 'Apple' matches 'a*'
+	t.true(isMatch(['apple', 'zoo'], ['a*', 'b*'])); // 'apple' matches 'a*'
 	t.false(isMatch(['foo', 'zoo'], ['a*', 'b*'])); // Neither matches
 });
 
@@ -494,6 +495,8 @@ test('empty string with wildcards', t => {
 });
 
 test('pattern ending with escape character', t => {
+	// A backslash with nothing after it is not an escape, so it matches itself.
+	t.true(isMatch('test\\', 'test\\'));
 	t.false(isMatch('test', 'test\\'));
 	t.true(isMatch('test\\', 'test\\\\'));
 	t.false(isMatch(String.raw`test\x`, 'test\\'));
@@ -678,6 +681,30 @@ test('patterns still match correctly after the cache evicts them', t => {
 	t.false(isMatch('foo1bar', 'foo0*'));
 });
 
+test('a single call with more patterns than the cache holds', t => {
+	// One call compiling thousands of patterns evicts its own earlier entries. The compiled patterns are already held by that call, so nothing may be lost.
+	const patterns = Array.from({length: 5000}, (_, index) => `item${index}`);
+	patterns.push('!item4999');
+
+	t.deepEqual(matcher(['item0', 'item2500', 'item4999', 'item5000', 'nope'], patterns, {caseSensitive: true}), ['item0', 'item2500']);
+
+	// The same, with nothing but negations, which is the case that once depended on how many there were.
+	const negations = Array.from({length: 3000}, (_, index) => `!no${index}`);
+	const kept = ['yes', 'no0', 'no2999', 'no3000'];
+	const all = {allPatterns: true};
+
+	t.deepEqual(matcher(kept, negations), ['yes', 'no3000']);
+	t.deepEqual(matcher(kept, negations, all), ['yes', 'no3000']);
+	t.true(isMatch(kept, negations, all));
+	t.false(isMatch(['no0'], negations, all));
+
+	// Repeating one pattern many times must not change the answer either.
+	const repeated = Array.from({length: 5000}, () => 'a*');
+
+	t.deepEqual(matcher(['ab', 'b'], repeated), ['ab']);
+	t.deepEqual(matcher(['ab', 'b'], repeated, {allPatterns: true}), ['ab']);
+});
+
 // Deterministic pseudo-random numbers (Park-Miller), so that failures can be reproduced.
 const createRandom = seed => () => {
 	seed = (seed * 16_807) % 2_147_483_647;
@@ -686,43 +713,89 @@ const createRandom = seed => () => {
 
 const randomString = (random, alphabet, maximumLength) => Array.from({length: Math.floor(random() * (maximumLength + 1))}, () => alphabet[Math.floor(random() * alphabet.length)]).join('');
 
-const randomAlphabet = ['a', 'b', 'A', '.', '*', '\\', '!', '\n', 'ß', 'ı', 'é', 'É', 'Σ', 'ς', '😀', '\uD83D'];
+const randomAlphabet = ['a', 'b', 'A', '.', '*', '\\', '!', '\n', 'ß', 'ı', 'ſ', 'K', 'é', 'É', 'Σ', 'ς', '😀', '\uD83D'];
+
+// Every string of length 0..maximumLength over the alphabet, in length order.
+const enumerateStrings = (alphabet, maximumLength) => {
+	const strings = [''];
+	let frontier = [''];
+
+	for (let length = 1; length <= maximumLength; length++) {
+		frontier = frontier.flatMap(prefix => alphabet.map(character => prefix + character));
+		strings.push(...frontier);
+	}
+
+	return strings;
+};
 
 // Makes a pattern that only matches the given string.
 const escapePattern = string => string.replaceAll(/[\\*!]/g, String.raw`\$&`);
 
-// The documented semantics as a regex. Only safe for short patterns.
-const referenceIsMatch = (input, pattern, caseSensitive) => {
-	const negated = pattern.startsWith('!');
-	let source = '';
+const escapeForRegex = string => string.replaceAll(/[|\\{}()[\]^$+*?.-]/g, String.raw`\$&`);
 
-	for (let index = negated ? 1 : 0; index < pattern.length; index++) {
-		let character = pattern[index];
+// The sweeps below reuse a few hundred patterns across tens of thousands of inputs, so the compiled form is kept. Building the source and the RegExp each time costs far more than the test itself does.
+const referenceRegexpCache = new Map();
 
-		if (character === '*') {
-			source += '.*';
-			continue;
+// The documented semantics of the pattern body, as a regex. Only safe for short patterns.
+const referenceBodyMatch = (input, pattern, caseSensitive) => {
+	const cacheKey = (caseSensitive ? 'S' : 'I') + pattern;
+	let regexp = referenceRegexpCache.get(cacheKey);
+
+	if (regexp === undefined) {
+		let source = '';
+
+		for (let index = pattern.startsWith('!') ? 1 : 0; index < pattern.length; index++) {
+			let character = pattern[index];
+
+			if (character === '*') {
+				source += '.*';
+				continue;
+			}
+
+			if (character === '\\' && index + 1 < pattern.length) {
+				index++;
+				character = pattern[index];
+			}
+
+			source += escapeForRegex(character);
 		}
 
-		if (character === '\\' && index + 1 < pattern.length) {
-			index++;
-			character = pattern[index];
-		}
-
-		source += character.replaceAll(/[|\\{}()[\]^$+*?.-]/g, String.raw`\$&`);
+		regexp = new RegExp(`^${source}$`, caseSensitive ? 's' : 'si');
+		referenceRegexpCache.set(cacheKey, regexp);
 	}
 
-	const matches = new RegExp(`^${source}$`, caseSensitive ? 's' : 'si').test(input);
-	return negated ? !matches : matches;
+	return regexp.test(input);
 };
 
-const checkAgainstReference = (t, {seed, alphabet, maximumLength, iterations}) => {
-	const random = createRandom(seed);
+const referenceIsMatch = (input, pattern, caseSensitive) => {
+	const matches = referenceBodyMatch(input, pattern, caseSensitive);
+	return pattern.startsWith('!') ? !matches : matches;
+};
 
-	for (let index = 0; index < iterations; index++) {
-		const pattern = randomString(random, alphabet, maximumLength);
-		const input = randomString(random, alphabet, maximumLength);
-		const caseSensitive = random() < 0.5;
+// The documented per-input semantics of a whole pattern list, as the readme describes it: omit the input if it matches a negation, if it matches none of the non-negated patterns while any exist (or not all of them with `allPatterns`), or if there is no pattern at all.
+const referenceMatchesInput = (input, patterns, {caseSensitive, allPatterns}) => {
+	if (patterns.length === 0) {
+		return false;
+	}
+
+	const positives = patterns.filter(pattern => !pattern.startsWith('!'));
+
+	if (patterns.some(pattern => pattern.startsWith('!') && referenceBodyMatch(input, pattern, caseSensitive))) {
+		return false;
+	}
+
+	if (positives.length === 0) {
+		return true;
+	}
+
+	return allPatterns
+		? positives.every(pattern => referenceBodyMatch(input, pattern, caseSensitive))
+		: positives.some(pattern => referenceBodyMatch(input, pattern, caseSensitive));
+};
+
+// Compares `isMatch()` with the reference for each `[input, pattern, caseSensitive]` case, and reports only the first difference, so that a regression fails with one readable message instead of thousands.
+const checkAgainstReference = (t, cases) => {
+	for (const [input, pattern, caseSensitive] of cases) {
 		const expected = referenceIsMatch(input, pattern, caseSensitive);
 
 		if (isMatch(input, pattern, {caseSensitive}) !== expected) {
@@ -734,23 +807,50 @@ const checkAgainstReference = (t, {seed, alphabet, maximumLength, iterations}) =
 	t.pass();
 };
 
+// The same for whole lists: `matcher()` has to keep exactly the inputs the reference keeps, and `isMatch()` has to be true exactly when it keeps any.
+const checkListsAgainstReference = (t, cases) => {
+	for (const [inputs, patterns, options] of cases) {
+		const call = `(${JSON.stringify(inputs)}, ${JSON.stringify(patterns)}, ${JSON.stringify(options)})`;
+		const expected = inputs.filter(input => referenceMatchesInput(input, patterns, options));
+
+		if (JSON.stringify(matcher(inputs, patterns, options)) !== JSON.stringify(expected)) {
+			t.fail(`matcher${call} should be ${JSON.stringify(expected)}`);
+			return;
+		}
+
+		const expectedAny = expected.length > 0;
+
+		if (isMatch(inputs, patterns, options) !== expectedAny) {
+			t.fail(`isMatch${call} should be ${expectedAny}`);
+			return;
+		}
+	}
+
+	t.pass();
+};
+
+const randomCases = ({seed, alphabet, maximumLength, count}) => {
+	const random = createRandom(seed);
+	return Array.from({length: count}, () => [randomString(random, alphabet, maximumLength), randomString(random, alphabet, maximumLength), random() < 0.5]);
+};
+
 test('matches like the equivalent regex for random patterns and inputs', t => {
-	checkAgainstReference(t, {
+	checkAgainstReference(t, randomCases({
 		seed: 1,
 		alphabet: randomAlphabet,
 		maximumLength: 6,
-		iterations: 5000,
-	});
+		count: 5000,
+	}));
 });
 
 test('matches like the equivalent regex for random wildcard-heavy patterns', t => {
 	// A small alphabet makes repeated and overlapping parts common.
-	checkAgainstReference(t, {
+	checkAgainstReference(t, randomCases({
 		seed: 4,
 		alphabet: ['a', 'b', '*'],
 		maximumLength: 8,
-		iterations: 10_000,
-	});
+		count: 10_000,
+	}));
 });
 
 test('an escaped pattern matches only its own text', t => {
@@ -764,18 +864,6 @@ test('an escaped pattern matches only its own text', t => {
 		t.false(isMatch(string + 'x', pattern, {caseSensitive: true}));
 		t.false(isMatch('x' + string, pattern, {caseSensitive: true}));
 		t.true(isMatch('x' + string + 'x', `*${pattern}*`, {caseSensitive: true}));
-	}
-});
-
-test('isMatch() agrees with matcher() for zero or one input', t => {
-	const random = createRandom(3);
-
-	for (let index = 0; index < 2000; index++) {
-		const inputs = random() < 0.2 ? [] : [randomString(random, randomAlphabet, 5)];
-		const patterns = Array.from({length: Math.floor(random() * 4)}, () => randomString(random, randomAlphabet, 4));
-		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
-
-		t.is(isMatch(inputs, patterns, options), matcher(inputs, patterns, options).length > 0);
 	}
 });
 
@@ -801,6 +889,27 @@ test('a lone `!` pattern excludes only the empty string', t => {
 	t.deepEqual(matcher(['', 'a', ''], '!'), ['a']);
 });
 
+test('the rule for omitting an input', t => {
+	// No pattern at all omits everything.
+	t.deepEqual(matcher(['foo'], []), []);
+	t.deepEqual(matcher(['foo'], undefined), []);
+
+	// A negated pattern omits the inputs it matches.
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar']), ['foo']);
+
+	// When every pattern is negated, an input survives as long as it matches none of them.
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', '!baz']), ['foo']);
+	t.deepEqual(matcher(['foo', 'bar', 'baz'], ['!bar', '!baz']), ['foo']);
+
+	// A non-negated pattern present means the input has to match it.
+	t.deepEqual(matcher(['foo', 'bar'], ['bar']), ['bar']);
+	t.deepEqual(matcher(['foo'], ['bar']), []);
+
+	// Negations win over non-negated patterns, whatever the order.
+	t.deepEqual(matcher(['foo', 'bar'], ['bar', '!bar']), []);
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', 'bar']), []);
+});
+
 test('only a leading `!` negates', t => {
 	t.true(isMatch('!foo', String.raw`\!foo`));
 	t.false(isMatch('foo', String.raw`\!foo`));
@@ -813,7 +922,6 @@ test('only a leading `!` negates', t => {
 test('the same pattern with and without negation', t => {
 	t.true(isMatch('foo', 'foo'));
 	t.false(isMatch('foo', '!foo'));
-	t.true(isMatch('foo', 'foo'));
 	t.false(isMatch('foo', ['foo', '!foo']));
 	t.false(isMatch('foo', ['!foo', 'foo']));
 });
@@ -940,60 +1048,19 @@ test('matcher() with many inputs and patterns', t => {
 });
 
 test('allPatterns with only negations: each input is checked on its own', t => {
-	const patterns = ['!bar', '!baz'];
 	const options = {allPatterns: true};
 
-	// An input is kept when it matches none of the negations. `isMatch()` is just
-	// "did any input survive", so it must agree with `matcher()` here too.
-	t.deepEqual(matcher(['foo', 'bar'], patterns, options), ['foo']);
-	t.true(isMatch(['foo', 'bar'], patterns, options));
-	t.true(isMatch(['foo', 'qux'], patterns, options));
-	t.false(isMatch(['bar', 'baz'], patterns, options));
-	t.false(isMatch([], patterns, options));
-});
+	// An input is kept when it matches none of the negations. `isMatch()` is just "did any input survive", so it must agree with `matcher()` here too.
+	t.deepEqual(matcher(['foo', 'bar'], ['!bar', '!baz'], options), ['foo']);
+	t.true(isMatch(['foo', 'bar'], ['!bar', '!baz'], options));
+	t.false(isMatch(['bar', 'baz'], ['!bar', '!baz'], options));
+	t.false(isMatch([], ['!bar', '!baz'], options));
 
-test('repeating a negated pattern does not change isMatch()', t => {
-	const options = {allPatterns: true};
-
-	// Listing the same negation twice used to flip the answer, because the number of
-	// negated patterns decided whether isMatch() required every input to pass.
+	// Listing the same negation twice used to flip the answer, because the number of negated patterns decided whether `isMatch()` required every input to pass.
 	t.true(isMatch(['foo', 'bar'], ['!bar'], options));
 	t.true(isMatch(['foo', 'bar'], ['!bar', '!bar'], options));
 	t.true(isMatch(['foo', 'bar'], ['!bar', '!bar', '!bar'], options));
 	t.false(isMatch(['bar'], ['!bar', '!bar'], options));
-	t.true(isMatch(['foo'], ['!bar', '!bar'], options));
-
-	t.true(isMatch(['foo', 'bar'], ['!bar', '!baz'], options));
-	t.true(isMatch(['foo', 'bar'], ['!baz', '!bar'], options));
-	t.false(isMatch(['bar', 'baz'], ['!bar', '!baz'], options));
-});
-
-test('isMatch() always agrees with matcher()', t => {
-	const random = createRandom(9);
-	const alphabet = ['a', 'b', 'A', '*', '\\', '!', '\n', 'ß', 'ı', 'K'];
-
-	for (let index = 0; index < 3000; index++) {
-		const inputs = Array.from({length: Math.floor(random() * 5)}, () => randomString(random, alphabet, 4));
-		const patterns = Array.from({length: 1 + Math.floor(random() * 3)}, () => randomString(random, alphabet, 4));
-		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
-
-		t.is(isMatch(inputs, patterns, options), matcher(inputs, patterns, options).length > 0);
-	}
-});
-
-test('repeating or reordering patterns does not change the result', t => {
-	const random = createRandom(10);
-	const alphabet = ['a', 'b', 'A', '*', '\\', '!', '\n', 'ß', 'ı', 'K'];
-
-	for (let index = 0; index < 3000; index++) {
-		const inputs = Array.from({length: Math.floor(random() * 5)}, () => randomString(random, alphabet, 4));
-		const patterns = Array.from({length: 1 + Math.floor(random() * 3)}, () => randomString(random, alphabet, 4));
-		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
-
-		t.deepEqual(matcher(inputs, patterns, options), matcher(inputs, [...patterns, ...patterns], options));
-		t.deepEqual(matcher(inputs, patterns, options), matcher(inputs, [...patterns].reverse(), options));
-		t.is(isMatch(inputs, patterns, options), isMatch(inputs, [...patterns].reverse(), options));
-	}
 });
 
 test('allPatterns with empty and wildcard patterns', t => {
@@ -1010,4 +1077,286 @@ test('long literal patterns and many wildcards', t => {
 	t.true(isMatch(long, `a*${'*'.repeat(10_000)}b`));
 	t.true(isMatch(long, `*${'b*'.repeat(1000)}`));
 	t.false(isMatch(long, `*${'c*'.repeat(1000)}`));
+});
+
+// Extracts the fenced code blocks from a markdown file, including the ones indented inside the doc comments of `index.d.ts`. A fence is three or more backticks or tildes with an optional language tag; anything not matching that is not a fence at all, since mistaking prose for a fence would silently swallow the block after it.
+const extractCodeBlocks = markdown => {
+	const blocks = [];
+	let openFence;
+	let language;
+	let current;
+
+	for (const line of markdown.split('\n')) {
+		const fence = line.match(/^\s*(`{3,}|~{3,})[ \t]*([\w-]*)/);
+
+		if (fence) {
+			// Only the same character and at least as many of them closes a block.
+			const closes = openFence !== undefined
+				&& fence[1][0] === openFence[0]
+				&& fence[1].length >= openFence.length;
+
+			if (closes) {
+				blocks.push({language, source: current.join('\n')});
+				openFence = undefined;
+				language = undefined;
+				current = undefined;
+			} else if (openFence === undefined) {
+				openFence = fence[1];
+				language = fence[2];
+				current = [];
+			}
+
+			continue;
+		}
+
+		if (current) {
+			// Doc comments indent their content by one tab.
+			current.push(line.replace(/^\t/, ''));
+		}
+	}
+
+	if (openFence !== undefined) {
+		throw new Error('A fenced code block is never closed');
+	}
+
+	return blocks;
+};
+
+// Rewrites `expression` followed by `//=> value` into a recorded comparison, and drops the `import` lines so the block can run against this module directly. An expression with no `//=>` line under it is recorded as undocumented, so that dropping one is noticed rather than quietly reducing what the suite checks.
+const rewriteBlock = block => {
+	const output = [];
+	// The expression most recently seen, waiting for a `//=>` line to describe it.
+	let pending;
+
+	const isSkippable = line => line.trim() === '' || line.trim().startsWith('//');
+	const isDeclaration = line => /^(const|let|var|function|class|return)\b/.test(line.trim());
+	const record = (expression, documented) => `__checks__.push([() => (${expression}), ${JSON.stringify(documented)}, ${JSON.stringify(expression)}]);`;
+	const recordUndocumented = expression => record(expression, null);
+
+	for (const line of block.split('\n')) {
+		if (/^import\s/.test(line.trim())) {
+			continue;
+		}
+
+		const expected = line.match(/^\s*\/\/=>\s*(.*)$/);
+
+		if (expected) {
+			if (pending === undefined) {
+				throw new Error(`A "//=>" comment has no expression above it:\n${block}`);
+			}
+
+			output.push(record(pending, expected[1].trim()));
+			pending = undefined;
+			continue;
+		}
+
+		if (isSkippable(line)) {
+			output.push(line);
+			continue;
+		}
+
+		if (isDeclaration(line)) {
+			pending = undefined;
+			output.push(line);
+			continue;
+		}
+
+		if (pending !== undefined) {
+			output.push(recordUndocumented(pending));
+		}
+
+		pending = line.trim().replace(/;$/, '');
+		output.push(line);
+	}
+
+	if (pending !== undefined) {
+		output.push(recordUndocumented(pending));
+	}
+
+	return output.join('\n');
+};
+
+// The documented values are plain literals, so evaluating them as an expression is safe.
+// eslint-disable-next-line no-new-func
+const evaluateLiteral = source => new Function(`"use strict"; return (${source});`)();
+
+// Runs every `//=> example` in the given file and compares it to the real result. `expectedCount` is asserted exactly, so that deleting an example has to be deliberate.
+const checkDocumentedExamples = (t, file, expectedCount) => {
+	const blocks = extractCodeBlocks(readFileSync(new URL(file, import.meta.url), 'utf8'));
+	const annotated = blocks.filter(({source}) => source.includes('//=>'));
+	// Examples belong in `js` or untagged blocks. One under any other tag is reported, so that retagging a block cannot quietly turn its examples into something the docs no longer present as JavaScript.
+	const otherLanguages = annotated.filter(({language}) => language !== '' && language !== 'js');
+
+	t.deepEqual(otherLanguages.map(({language}) => language), [], `${file} has example blocks tagged with another language`);
+
+	let total = 0;
+
+	for (const {source} of annotated) {
+		// eslint-disable-next-line no-new-func
+		const run = new Function('__checks__', 'matcher', 'isMatch', `"use strict";\n${rewriteBlock(source)}`);
+		const collected = [];
+		run(collected, matcher, isMatch);
+
+		for (const [getResult, documented, label] of collected) {
+			total++;
+
+			if (documented === null) {
+				t.fail(`${file}: \`${label}\` has no "//=>" line documenting its result`);
+				continue;
+			}
+
+			t.deepEqual(getResult(), evaluateLiteral(documented), `${file}: ${label}`);
+		}
+	}
+
+	t.is(total, expectedCount, `${file} should document ${expectedCount} examples`);
+};
+
+test('every example in the readme produces the documented result', t => {
+	checkDocumentedExamples(t, 'readme.md', 30);
+});
+
+test('every example in the type declarations produces the documented result', t => {
+	checkDocumentedExamples(t, 'index.d.ts', 27);
+});
+
+const codePointName = codePoint => `U+${codePoint.toString(16).toUpperCase()}`;
+
+test('matches the equivalent regex for every short pattern and input', t => {
+	// Exhaustive over every pattern of up to four characters and every input of up to three, in both case modes. The alphabet has a letter in both cases and every metacharacter, so nothing in the parser or in case folding is left to chance.
+	const patterns = enumerateStrings(['a', 'A', '*', '\\', '!'], 4);
+	const inputs = patterns.filter(pattern => pattern.length <= 3);
+	const cases = [true, false].flatMap(caseSensitive => patterns.flatMap(pattern => inputs.map(input => [input, pattern, caseSensitive])));
+
+	t.is(cases.length, 2 * 781 * 156);
+	checkAgainstReference(t, cases);
+});
+
+test('matcher() keeps exactly the inputs the reference keeps, for every pair of patterns', t => {
+	const patterns = enumerateStrings(['a', '*', '!', '\\'], 2);
+	const inputs = enumerateStrings(['a', 'b'], 3);
+	// No character here has another case in the inputs, so only `allPatterns` is varied. Case folding is covered by the sweep above.
+	const pairs = patterns.flatMap(first => patterns.map(second => [first, second]));
+	const cases = [true, false].flatMap(allPatterns => pairs.map(pair => [inputs, pair, {allPatterns}]));
+
+	t.is(cases.length, 2 * 21 * 21);
+	checkListsAgainstReference(t, cases);
+});
+
+test('matcher() and isMatch() agree with the reference for random lists, whatever the order or repetition of the patterns', t => {
+	const random = createRandom(31_337);
+	const cases = [];
+
+	for (let index = 0; index < 1500; index++) {
+		const inputs = Array.from({length: Math.floor(random() * 5)}, () => randomString(random, randomAlphabet, 5));
+		const patterns = Array.from({length: Math.floor(random() * 4)}, () => randomString(random, randomAlphabet, 5));
+		const options = {caseSensitive: random() < 0.5, allPatterns: random() < 0.5};
+
+		// The reference ignores order and repetition, so agreeing with it for all three lists proves that `matcher()` and `isMatch()` do too.
+		cases.push([inputs, patterns, options], [inputs, [...patterns, ...patterns], options], [inputs, patterns.toReversed(), options]);
+	}
+
+	checkListsAgainstReference(t, cases);
+});
+
+test('case-insensitive matching folds every case-mapped character like a regex does', t => {
+	// Every character that has a case mapping has to match its own uppercase and lowercase form exactly like `/^<char>$/i` without the `u` flag, which is what `normalizeCase()` is built to reproduce.
+	let checked = 0;
+
+	for (let codePoint = 0; codePoint <= 0x10_FF_FF; codePoint++) {
+		const character = String.fromCodePoint(codePoint);
+		const upper = character.toUpperCase();
+		const lower = character.toLowerCase();
+
+		if (upper === character && lower === character) {
+			continue;
+		}
+
+		checked += 2;
+
+		for (const [form, description] of [[upper, 'uppercase'], [lower, 'lowercase']]) {
+			const expected = new RegExp(`^${escapeForRegex(form)}$`, 'si').test(character);
+
+			if (isMatch(character, form) !== expected) {
+				t.fail(`the ${description} form of ${codePointName(codePoint)} should ${expected ? '' : 'not '}match case-insensitively`);
+				return;
+			}
+		}
+	}
+
+	t.true(checked > 5000, `only checked ${checked} case-mapped characters`);
+});
+
+test('every string without a backslash or a leading `!` matches itself', t => {
+	// A string only matches itself if it has no `\` to escape with and no leading `!` to negate it, so the alphabet leaves both out. The strings are sampled, since every distinct pattern costs a cache miss and sweeping all 1.1 million code points takes far longer than the rest of the suite.
+	const random = createRandom(20_250_926);
+	const alphabet = ['a', 'A', '0', ' ', '\n', '*', 'é', 'É', 'ß', 'ı', 'ſ', 'K', 'Σ', 'ς', '中', '😀', '\uD83D'];
+	const strings = Array.from({length: 2000}, () => randomString(random, alphabet, 3));
+
+	// A regular stride over the astral planes, where the code points live that the hand-picked alphabet above cannot reach.
+	for (let codePoint = 0x1_00_00; codePoint <= 0x10_FF_FF; codePoint += 4096) {
+		strings.push(String.fromCodePoint(codePoint));
+	}
+
+	for (const caseSensitive of [true, false]) {
+		t.deepEqual(strings.filter(string => !isMatch(string, string, {caseSensitive})), [], `caseSensitive: ${caseSensitive}`);
+	}
+});
+
+test('a string containing a metacharacter does not necessarily match itself', t => {
+	// The two reasons a string stops matching itself, spelled out so the invariant above does not look like it should hold for these.
+	t.false(isMatch(String.raw`\a`, String.raw`\a`)); // The pattern `\a` asks for a literal `a`
+	t.true(isMatch('a', String.raw`\a`));
+	t.false(isMatch(String.raw`a\b`, String.raw`a\b`));
+	t.false(isMatch('!*', '!*')); // A leading `!` negates, and the body is a wildcard
+	t.true(isMatch('!x', '!x')); // True only because `!x` is not `x`
+	t.true(isMatch('a!', 'a!')); // A `!` that is not leading is literal
+
+	// Escaping every metacharacter makes any string match itself again.
+	for (const string of [String.raw`\a`, '!*', String.raw`a\*b!`, '*', '!', '\\']) {
+		t.true(isMatch(string, escapePattern(string), {caseSensitive: true}), `escaped self-match of ${JSON.stringify(string)}`);
+	}
+});
+
+test('matches the equivalent regex for random code points from all of Unicode', t => {
+	const random = createRandom(4242);
+
+	// Draw from the whole range instead of a fixed alphabet, so astral letters, CJK, RTL scripts, combining marks and punctuation all get exercised.
+	const drawCodePoint = () => {
+		for (;;) {
+			const roll = random();
+			let codePoint;
+
+			if (roll < 0.45) {
+				codePoint = Math.floor(random() * 0x80);
+			} else if (roll < 0.6) {
+				codePoint = Math.floor(random() * 0x6_00);
+			} else if (roll < 0.8) {
+				codePoint = 0x30_00 + Math.floor(random() * 0x30_00);
+			} else if (roll < 0.9) {
+				codePoint = 0x1_00_00 + Math.floor(random() * 0x10_00);
+			} else {
+				codePoint = 0x10_00 + Math.floor(random() * 0x10_00);
+			}
+
+			if (codePoint >= 0xD8_00 && codePoint <= 0xDF_FF) {
+				continue; // Skip surrogates so the string stays well-formed.
+			}
+
+			return String.fromCodePoint(codePoint);
+		}
+	};
+
+	const metacharacters = String.raw`*\!`;
+	const drawCharacter = metacharacterChance => random() < metacharacterChance ? metacharacters[Math.floor(random() * metacharacters.length)] : drawCodePoint();
+	const randomText = metacharacterChance => Array.from({length: Math.floor(random() * 5)}, () => drawCharacter(metacharacterChance)).join('');
+	const cases = [];
+
+	for (let index = 0; index < 2000; index++) {
+		const input = randomText(0.25);
+		const pattern = randomText(0.35);
+		cases.push([input, pattern, true], [input, pattern, false]);
+	}
+
+	checkAgainstReference(t, cases);
 });

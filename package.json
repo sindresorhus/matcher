@@ -21,7 +21,7 @@
 	},
 	"scripts": {
 		"test": "xo && ava",
-		"bench": "matcha bench.js"
+		"bench": "_matcha bench.js"
 	},
 	"files": [
 		"index.js",
@@ -44,6 +44,9 @@
 		"globbing",
 		"minimatch"
 	],
+	"ava": {
+		"timeout": "2m"
+	},
 	"devDependencies": {
 		"ava": "^6.4.1",
 		"matcha": "^0.7.0",

@@ -1,6 +1,6 @@
 export type Options = {
 	/**
-	Make matching case-sensitive. When `false`, treats uppercase and lowercase characters as being the same.
+	Make matching case-sensitive. When `false`, treats uppercase and lowercase characters as being the same, the way a case-insensitive regular expression without the `u` flag does. So a character whose uppercase form is more than one character (`ß`) or is ASCII while the character itself is not (`ı`, `ſ`), and every character outside the Basic Multilingual Plane, only matches itself.
 
 	Ensure you use this correctly. For example, files and directories should be matched case-insensitively, while most often, object keys should be matched case-sensitively.
 
@@ -22,7 +22,7 @@ export type Options = {
 	*/
 	readonly caseSensitive?: boolean;
 	/**
-	Require all negated patterns to not match and any normal patterns to match at least once. Otherwise, it will be a no-match condition.
+	A negated pattern always excludes the inputs it matches, whether or not this option is set. Setting it also requires every non-negated pattern to match the same input, instead of at least one of them.
 
 	@default false
 
@@ -42,10 +42,10 @@ export type Options = {
 	import {matcher} from 'matcher';
 
 	matcher(['foo', 'for', 'bar'], ['f*', 'b*', '!x*'], {allPatterns: true});
-	//=> ['foo', 'for', 'bar']
+	//=> []
 
 	matcher(['foo', 'for', 'bar'], ['f*'], {allPatterns: true});
-	//=> []
+	//=> ['foo', 'for']
 	```
 	*/
 	readonly allPatterns?: boolean;
@@ -57,7 +57,7 @@ Simple [wildcard](https://en.wikipedia.org/wiki/Wildcard_character) matching.
 It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 @param inputs - The string or array of strings to match.
-@param patterns - The string or array of string patterns. Use `*` to match zero or more characters. A leading `!` negates the pattern.
+@param patterns - The string or array of string patterns. Use `*` to match zero or more characters. A leading `!` negates the pattern. A `\` escapes the character after it, and a `\` at the very end of a pattern matches itself.
 @returns An array of `inputs` filtered based on the `patterns`.
 
 @example
@@ -90,8 +90,8 @@ export function matcher(
 It matches even across newlines. For example, `foo*r` will match `foo\nbar`.
 
 @param inputs - The string or array of strings to match.
-@param patterns - The string or array of string patterns. Use `*` to match zero or more characters. A leading `!` negates the pattern.
-@returns A `boolean` of whether any of the given `inputs` matches at least one of the `patterns`.
+@param patterns - The string or array of string patterns. Use `*` to match zero or more characters. A leading `!` negates the pattern. A `\` escapes the character after it, and a `\` at the very end of a pattern matches itself.
+@returns A `boolean` of whether any of the given `inputs` matches the `patterns`. With `allPatterns` enabled, an input has to match every non-negated pattern, not just one.
 
 @example
 ```
@@ -114,6 +114,9 @@ isMatch('foo bar baz', 'foo b* b*');
 
 isMatch('unicorn', 'uni\\*');
 //=> false
+
+isMatch('C:\\temp\\x', 'C:\\\\temp\\\\*');
+//=> true
 
 isMatch(['foo', 'bar'], 'f*');
 //=> true
